@@ -1,0 +1,5 @@
+.codex
+.idea
+.vscode
+cmake-build*
+build/*
