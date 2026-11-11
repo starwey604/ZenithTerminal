@@ -1,0 +1,3 @@
+[submodule "3rdparty/BUAABackend"]
+	path = 3rdparty/BUAABackend
+	url = https://github.com/BUAA-Transistor-alg/RM2027-CustomTerminal-CommunicationBackend
