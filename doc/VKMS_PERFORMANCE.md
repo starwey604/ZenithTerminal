@@ -1,12 +1,111 @@
 # 定位 NV12 双 plane 预览的耗时
 
 保持真实 NV12 视频 plane + SDL ARGB UI plane，由 VKMS 合成后 writeback。
-当前单一累计补丁在 1280×720、60 Hz 模式下，1200 帧实际窗口预览平均 **59.15 FPS**，
-帧时中位数 **16.656 ms**，接近每个刷新周期一帧。整幅固定帧与原模块逐字节一致。
-仍有少量长帧，不能把本次平均帧率当成每帧不超过 16.67 ms 的实时保证。
+当前 1920×1080 实际窗口预览平均 **59.44 FPS**；3600 个测量帧中仍有 44 帧超过
+25 ms，严格“稳 60 FPS”目标尚未通过。全部逐帧 alpha 校验通过，固定帧与原模块一致。
 
 补丁源码、构建与恢复见 [VKMS 补丁说明](../patches/linux-vkms/README.md)。
-仓库仅维护一个 patch，直接应用到原始基线；下方旧结果用于说明定位过程。
+仓库仅维护一个累计 patch，直接应用到原始基线。
+
+## RM2027 确实是 1080p60 HEVC
+
+[官方通信协议页面](https://bbs.robomaster.com/wiki/20204847/1969151) 中的
+《RoboMaster 2027 机甲大师高校系列赛通信协议》V1.0.0（2026-10-29），
+PDF 第 47 页第 2 节规定：自定义终端从 UDP 3334 接收 **1920×1080、60 FPS、
+HEVC/H.265** 视频，无重传机制。因此正式接入按这个规格，而不是原示例的 720p。
+本轮是生成 NV12 测试图的显示性能；HEVC 解码与网络接收还未接入。
+
+## 1080p 结果与剩余差距：2026-11-12
+
+最终模块：`build/perf/vkms-1080-publish/vkms.ko`，srcversion
+`C8345625018A850F283555A`。AMD Ryzen AI 9 HX 470 / CachyOS `7.3.3-1-cachyos`，
+SDL Wayland + OpenGL 只上传已合成的 writeback；UI 本身仍由 SDL 软件绘制。
+没有降低分辨率、停掉 CRC reader 功能、预先合成两个源图或丢弃帧。
+
+```bash
+./build/native/bin/ZenithTerminal --drm-demo --size 1920x1080 \
+  --pipeline --take-over --uncapped --frames 3610 --warmup 10 \
+  --profile build/perf/1080.csv
+python3 tools/vkms/summarize-profile.py build/perf/1080.csv
+```
+
+运行 3610 帧，前 10 帧为预热。余下 3600 帧：
+
+| 指标 | 实测 |
+|---|---:|
+| 循环均值折算 FPS | 59.44 |
+| 全程帧数 / 墙钟时间（含预热） | 3610 / 60.84 s，59.33 FPS |
+| 平均循环 | 16.825 ms |
+| 中位数 | 16.662 ms |
+| p95 / p99 | 17.792 / 25.638 ms |
+| 最长循环 | 35.236 ms |
+| >25 ms 循环数 | 44 / 3600（1.22%） |
+
+分段均值：填图 1.168 ms、UI 1.290 ms、请求 0.008 ms、blocking commit 7.072 ms、
+剩余 writeback 等待 6.439 ms、窗口呈现 0.846 ms。流水线的填图/UI 属于**下一帧**，
+与内核当前帧合成重叠；不能把剩余 fence 等待当作内核全部计算时间。
+
+### 哪些改动带来了收益
+
+以下为推进过程，窗口与无窗口分别标注；完整参数与分段数据见
+[证据 JSON](evidence/vkms-1080-performance-2026-11-12.json)。
+
+| 1080p 候选 | 预览 | 测量帧数 | 平均 FPS |
+|---|---|---:|---:|
+| 上轮 720p 累计补丁，直接改为 1080p | 无 | 300 | 29.53 |
+| 跳过未启用的色彩流水线 | 无 | 300 | 41.73 |
+| 再优化测试源生成与 UI 预乘 | 无 | 300 | 56.85 |
+| 分阶段提交、引用计数修复 | 无 | 1200 | 58.56 |
+| 融合行读取/混合，软件窗口 | X11 软件 | 1200 | 57.67 |
+| OpenGL 只呈现 writeback | X11 OpenGL | 3600 | 59.44 |
+| 跳过无消费者的冗余合成 | Wayland OpenGL | 3600 | 59.30 |
+| 有序 composer workqueue 使用 WQ_HIGHPRI | Wayland OpenGL | 3600 | 59.59 |
+| 最终候选：同时修正 job 发布顺序 | Wayland OpenGL | 3600 | 59.44 |
+
+临时计时模块显示原先空色彩流水线在 1080p 仍耗时约 5.5 ms，NV12 读取约 4.7 ms；
+这些是一次诊断采样，不是最终模块的持续监测。最终补丁不含该计时代码。
+测试图把不变的颜色换算移出像素循环；UI 在设置画笔颜色时完成预乘，移除整帧遍历。
+两项用户态改动均做了原/新整缓冲比较，包含 padding 和不同分辨率。
+
+`--pipeline` 在 blocking commit 返回后，利用已释放的旧槽准备下一帧，再等当前
+writeback fence。只有一份在途 writeback；原同步 `present()` 仍可用。
+最后的 `WQ_HIGHPRI` 只提高 VKMS 有序工作线程的普通调度优先级；没有实时策略、
+CPU 绑定或宿主机全局调度配置改动。该次对照减轻长帧，但不能据此承诺其他机器稳 60。
+
+**当前仍缺严格 60 FPS 的尾延迟验收。** 已消除平均吞吐的主要瓶颈，但长帧时的
+`commit_ms` 与 `writeback_ms` 仍会同时增长。接下来的关键是捕获长帧的工作队列排队、
+vblank 唤醒和实际合成时间，区分调度延迟与计算尖峰，再决定是否继续改 VKMS。
+目前不据此承诺 RK 实机端到端 60 FPS；实机还需验证 MPP 解码和 VOP2 扫描路径。
+
+### 可靠性、像素与双平台验证
+
+- 早期流水线测试触发 writeback fence 超时：旧 job 的异步 cleanup 会清空共享
+  `composer_enabled`。通过临时打开 VKMS CRC reader 恢复处理，测试进程完成资源清理。
+  累计补丁引入已提交 job/CRC 的引用计数；未提交的取消 job 不释放引用。
+  最终检查还修正了 job 发布顺序：先初始化并入队，再在锁内发布 wb_pending；
+  worker 在相同锁内取 job 指针，避免看见未准备完成的工作。对应确定性回归覆盖
+  解锁后立即执行 worker，以及 vblank 引用获取失败的清理分支。
+  [参考提案](https://go.mail-archive.com/dri-devel@lists.freedesktop.org/msg646844.html)。
+- 修复后长测无 fence 超时。实测 writeback 结束后 CRC reader 仍继续产生条目
+  （300 ms 内 677 → 695）；在 240 帧运行中关闭 CRC reader，writeback 仍完成。
+- 1920×1080 第 3 帧，与系统原模块全部 2,073,600 个 RGB 像素及 BMP 文件一致；
+  同步与流水线两种入口都通过。1280×720 第 39 帧也与历史原模块基准一致。
+- 新增空/有效色彩流水线、ARGB 融合和 composer 并发引用测试，启用 ASan/UBSan。
+  先前的数学穷举、读取方向/裁剪/pitch/offset 测试适用于最终未再修改的 NV12 reader。
+- 生命周期硬件回归覆盖：扫描槽禁止写入、在途提交保护、finish 状态、同步入口、
+  有/无 writeback、shutdown 后重用、在途析构。SIGINT 和截图写入失败均清理退出。
+- 本机 CTest 通过；RK3566 重新交叉构建通过，AArch64 ELF 的加载器、SDK 库和
+  27 项版本要求匹配，无 RPATH/RUNPATH；QEMU smoke、DRM/UI 单元测试及帮助入口通过。
+- X11 后端有一次在 SDL 等待 MapNotify 时卡住，尚未提交 KMS 状态；结束该测试进程。
+  当前推荐使用已完成长测的原生 Wayland 后端，保留 X11/软件 renderer 供对照。
+- 测试结束恢复系统原模块 `6A20A3C0EC14F8CECBF18F8`，关闭管理员会话；三块输出的
+  模式、位置、缩放、旋转、优先级与交接前一致，桌面重新持有 VKMS。
+
+![1080p 实际 writeback 预览窗口](evidence/vkms-1080-window-2026-11-12.png)
+
+[3600 帧完整 CSV（含 10 帧预热）](evidence/vkms-1080-long-2026-11-12.csv)；
+原始诊断/构建/运行日志为 `build/perf/1080-*`，交接记录为
+`build/native/vkms-session/1080-before.json` 和 `1080-after.json`。
 
 ## 复现分段计时
 
@@ -36,14 +135,18 @@ CSV 在正常退出时刷新；异常中止的文件可能不完整。
 
 CSV 列含义：
 
+- `prepared_frame`：本行填图/UI 的帧号；同步为当前帧，流水线通常为下一帧，末帧不准备时为 -1。
 - `video_ms` / `ui_ms`：写测试视频 / SDL 离屏绘制。
 - `request_ms`：准备 atomic 属性；`commit_ms`：blocking atomic ioctl。
-- `writeback_ms`：ioctl 返回后的 fence 等待和状态检查。未启用 writeback 时仅有记时开销。
+- `writeback_ms`：进入 `finish()` 后的剩余 fence 等待和状态检查。同步模式即 ioctl 返回后；
+  流水线模式已先准备下一帧。未启用 writeback 时仅有记时开销。
 - `verify_ms`：逐帧三个 alpha 样本；`capture_ms`：可选 BMP 保存。
-- `preview_ms`：窗口上传/呈现；`work_ms`：从填图到预览完成。
+- `preview_ms`：窗口上传/呈现；`work_ms`：完整循环起点到预览完成。
 - `pacing_ms`：末尾日志和限速等待；`total_ms`：完整循环时间。
 
 汇总 FPS = 1000 / 平均 `total_ms`，不把每帧 FPS 算术平均。
+`total_ms` 保留原定义：循环起点到计时结束，不含随后 CSV 格式化/写出及循环之间的开销。
+因此同时记录完整运行的帧数/墙钟时间，不将此折算值视为精确的显示完成间隔。
 `commit_ms` 和 `writeback_ms` 是用户态观测区间，不是两项相互独立的内核计算成本。
 
 ## 原模块对照：2026-11-12
@@ -118,7 +221,7 @@ NV12 整帧从 232.145 降至 48.505 ms；RGB 与无 writeback 对照仍接近 6
 
 第一轮构建产物 `build/perf/vkms-fast/vkms.ko` 保留作实验记录，不作为当前推荐模块。
 
-## 当前累计补丁：接近 60 Hz 刷新上限
+## 历史 720p 累计补丁：接近 60 Hz 刷新上限
 
 本轮在同一个 patch 内依次增加精确 NV12 查表、UV 复用、XRGB8888 按行写回和
 alpha 端点快速路径。没有改变分辨率、测试图、SDL UI、两 plane、writeback 或同步语义。
@@ -129,7 +232,7 @@ alpha 端点快速路径。没有改变分辨率、测试图、SDL UI、两 plan
 最后增加数学等价的 alpha 端点路径，提升透明 UI 的处理余量。
 这些是不同候选的诊断结果，最终验收使用下面同一份模块。
 
-### 最终候选实测
+### 720p 阶段候选实测
 
 模块：`build/perf/vkms-60fps/vkms.ko`；加载时核对 srcversion
 `DE805DCED822DF126BDD22D`。未更改应用二进制、内核刷新率、调度优先级或 CPU 绑定。
@@ -157,7 +260,7 @@ commit 5.806 ms、writeback 等待 7.144 ms、窗口呈现 0.847 ms。
 - 结束后已恢复系统原模块 `6A20A3C0EC14F8CECBF18F8`，关闭管理员会话；
   HDMI-A-1、DP-1、Virtual-1 的模式/位置/缩放/旋转/优先级均恢复，桌面重新持有 master。
 
-![当前补丁的真实窗口预览](evidence/vkms-60fps-preview-2026-11-12.png)
+![720p 阶段补丁的真实窗口预览](evidence/vkms-60fps-preview-2026-11-12.png)
 
 临时加载当前模块并取得 VKMS 控制权后，用以下命令调试 UI：
 

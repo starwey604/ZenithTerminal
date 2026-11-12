@@ -28,12 +28,18 @@ public:
     ~AtomicDisplay();
     AtomicDisplay(const AtomicDisplay&) = delete;
     AtomicDisplay& operator=(const AtomicDisplay&) = delete;
-    // Writable until submitted; do not retain writable views after present().
+    // Writable until submitted; do not retain writable views after submit()/present().
+    // After submit() returns, the old scanning slot is writable even while writeback runs.
     FrameTargets next_frame();
     void test_only(unsigned slot);
     // Blocks for commit and, when enabled, writeback. No writeback returns an empty
     // capture. A captured image remains valid until this slot is reused.
     CapturedImage present(unsigned slot, PresentTiming* timing = nullptr);
+    // Split present for overlap: blocking commit releases the old scanning slot.
+    // Only one submission may be outstanding. finish() waits for its writeback.
+    // Prepare next_frame() between these calls; never touch the submitted slot.
+    void submit(unsigned slot, PresentTiming* timing = nullptr);
+    CapturedImage finish(PresentTiming* timing = nullptr);
     void shutdown();
     std::string description() const;
 private:

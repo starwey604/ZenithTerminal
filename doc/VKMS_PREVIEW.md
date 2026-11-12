@@ -16,8 +16,10 @@ cmake --build --preset native
 ctest --preset native
 ```
 
-本机需要 libdrm、X11 开发文件和可用的 X11/XWayland 会话。本轮 SDL 仅为
-preview 开启 X11 窗口后端；没有开启 SDL KMSDRM、OpenGL 或 Vulkan。
+本机需要 libdrm、Wayland/X11、xkbcommon、EGL/OpenGL 开发文件，以及可用的桌面会话。
+SDL 仅为 preview 开启 Wayland/X11 和 OpenGL；没有开启 SDL KMSDRM 或 Vulkan。
+默认由 SDL 选择窗口后端和 renderer，启动日志打印实际选择；
+`SDL_VIDEO_DRIVER=x11` / `SDL_RENDER_DRIVER=software` 可用于对照。
 `zenith_ui` 仍只使用软件 renderer 画到显示模块提供的内存，不创建窗口。
 
 正式应用 CMake target 为 `zenith_terminal`；输出仍叫 `ZenithTerminal`，
@@ -61,8 +63,9 @@ sudo udevadm trigger --action=remove /sys/devices/faux/vkms/drm/card0
   --frames 120 --capture /tmp/zenith-writeback.bmp
 ```
 
-默认自动查找 VKMS；`--device /dev/dri/cardN` 可显式指定设备。当前示例固定
-1280×720，要求线性 NV12 primary、线性 ARGB8888 overlay、XR24 writeback
+默认自动查找 VKMS；`--device /dev/dri/cardN` 可显式指定设备。默认仍为
+1280×720，可用 `--size 1920x1080` 对齐 RM2027 视频规格。宽高必须为偶数、
+在 320×240～4096×2160 范围内，且设备提供对应模式。要求线性 NV12 primary、线性 ARGB8888 overlay、XR24 writeback
 和对应显示模式。缺少所需组合直接报错，不换成 SDL 合成。
 
 默认运行 300 帧；`--no-preview` 不创建桌面窗口，仍执行真实 KMS 合成、
@@ -73,6 +76,27 @@ writeback 和像素校验。`--capture` 在第 31 帧及指定的最后一帧保
 轮换：只修改未被扫描输出的槽；blocking atomic commit 完成替换，再等待
 writeback fence 成功后读取结果、校验和预览。预览只上传这张 XR24 图，不接触
 视频/UI 源图。最大节奏设为 30 帧/秒，实际速度由软件 VKMS 和显示链路决定。
+
+### 1080p 的调试入口
+
+加载累计优化补丁并释放 VKMS 后：
+
+```bash
+./build/native/bin/ZenithTerminal --drm-demo --size 1920x1080 \
+  --pipeline --take-over --uncapped --frames 0
+```
+
+`--pipeline` 将一次同步 present 拆为 blocking commit 和 writeback 等待：
+commit 返回后，旧扫描槽已释放；应用在这个槽准备下一帧，同时内核读取当前槽。
+随后等待当前 fence，再校验和预览。仍只有两个槽、一次在途 writeback；不覆盖扫描中
+或正在写回的缓冲，也不丢帧。原同步 `present()` 和默认运行方式保留。
+OpenGL 只呈现已经完成的 writeback 图像，视频与 UI 仍由 VKMS 的两个 plane 合成。
+
+可选硬件生命周期回归（会修改指定虚拟卡的 KMS 状态，不纳入普通 CTest）：
+
+```bash
+./build/native/app/src/display/drm/zenith_drm_lifecycle_test /dev/dri/card0 --take-over
+```
 
 透明 UI 使用预乘 alpha，匹配 KMS 默认混合语义。底部三个验证点的 alpha
 分别是 0、128、255；NV12 背景灰度随帧变化，每帧从 writeback 校验三个点的

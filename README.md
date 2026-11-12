@@ -42,4 +42,7 @@ cmake --build --preset native
 [运行、设备交接与恢复指南](doc/VKMS_PREVIEW.md) 包含 TEST_ONLY、截图、
 交叉编译和实测结果。默认启动与 `--self-check` 仍只运行原有 smoke。
 
+RM2027 的 1080p 调试使用 `--size 1920x1080 --pipeline --uncapped`；
+需要先临时加载下面记录的累计 VKMS 补丁。
+
 [分段计时、对照实验与 VKMS 优化补丁](doc/VKMS_PERFORMANCE.md)。

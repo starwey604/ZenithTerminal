@@ -107,7 +107,7 @@ struct AtomicDisplay::Impl {
     struct Buffers { std::unique_ptr<Buffer> video, ui, capture; };
     std::array<Buffers, 2> slots;
     int current{-1};
-    bool active{};
+    bool active{}, pending{};
     int width{}, height{};
     DisplayOptions options;
 
@@ -226,6 +226,7 @@ struct AtomicDisplay::Impl {
     }
     void shutdown() {
         wait_writeback(-1); // Never release an in-flight writeback buffer on a timeout path.
+        pending = false;
         if (active) {
             Request r;
             for (const auto* p : {&video, &ui}) {
@@ -256,14 +257,19 @@ FrameTargets AtomicDisplay::next_frame() {
     return {next, impl_->slots[next].video->view(), impl_->slots[next].ui->view()};
 }
 void AtomicDisplay::test_only(unsigned slot) {
+    require(!impl_->pending, "previous submission still pending");
     Request request; impl_->configure(request, slot, nullptr);
     check(drmModeAtomicCommit(impl_->device.value, request.value,
         DRM_MODE_ATOMIC_TEST_ONLY | DRM_MODE_ATOMIC_ALLOW_MODESET, nullptr), "atomic TEST_ONLY");
 }
 CapturedImage AtomicDisplay::present(unsigned slot, PresentTiming* timing) {
+    submit(slot, timing);
+    return finish(timing);
+}
+void AtomicDisplay::submit(unsigned slot, PresentTiming* timing) {
     using Clock = std::chrono::steady_clock;
     const auto start = Clock::now();
-    require(impl_->fence.value < 0, "previous writeback still pending");
+    require(!impl_->pending && impl_->fence.value < 0, "previous submission still pending");
     int fence = -1;
     Request request; impl_->configure(request, slot, &fence);
     const auto prepared = Clock::now();
@@ -272,19 +278,24 @@ CapturedImage AtomicDisplay::present(unsigned slot, PresentTiming* timing) {
     impl_->fence.reset(fence);
     check(status, "atomic commit");
     impl_->active = true; impl_->current = slot;
-    if (impl_->options.writeback) {
-        require(fence >= 0, "kernel did not return writeback fence");
-        impl_->wait_writeback(5000);
-    }
-    const auto finished = Clock::now();
+    impl_->pending = true;
     if (timing) *timing = {
         std::chrono::duration<double, std::milli>(prepared - start).count(),
-        std::chrono::duration<double, std::milli>(committed - prepared).count(),
-        std::chrono::duration<double, std::milli>(finished - committed).count()};
+        std::chrono::duration<double, std::milli>(committed - prepared).count(), 0};
+    if (impl_->options.writeback) require(fence >= 0, "kernel did not return writeback fence");
+}
+CapturedImage AtomicDisplay::finish(PresentTiming* timing) {
+    require(impl_->pending, "no pending submission");
+    const auto start = std::chrono::steady_clock::now();
+    if (impl_->options.writeback) impl_->wait_writeback(5000);
+    impl_->pending = false;
+    if (timing) timing->writeback_ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - start).count();
     if (!impl_->options.writeback) return {};
-    const auto& b = *impl_->slots[slot].capture;
+    const auto& b = *impl_->slots[impl_->current].capture;
     return {static_cast<const std::byte*>(b.pixels), b.width, b.height, b.pitch};
 }
+
 void AtomicDisplay::shutdown() { impl_->shutdown(); }
 std::string AtomicDisplay::description() const {
     return impl_->snapshot.path + " driver=" + impl_->snapshot.driver + " master=1 CRTC=" + std::to_string(impl_->crtc.id) +

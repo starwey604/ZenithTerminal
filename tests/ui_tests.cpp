@@ -3,8 +3,9 @@
 #include <cstring>
 #include <stdexcept>
 #include <vector>
-void ui_tests() {
-    constexpr int width=1280, height=720, pitch=width*4+64;
+namespace {
+void check_size(int width, int height) {
+    const int pitch=width*4+64;
     std::vector<std::uint8_t> pixels(pitch*height, 0xa5);
     zenith::ui::draw(pixels.data(), width, height, pitch, 42);
     const int x[]{36,76,116};
@@ -17,3 +18,6 @@ void ui_tests() {
         for (int x=width*4;x<pitch;++x)
             if (pixels[y*pitch+x]!=0xa5) throw std::runtime_error("UI overwrote pitch padding");
 }
+
+} // namespace
+void ui_tests() { check_size(1280,720); check_size(1920,1080); }

@@ -20,3 +20,6 @@ for path in args.files:
     for key in keys:
         values = sorted(float(row[key]) for row in rows)
         print(f'{key:18s} {statistics.mean(values):8.3f} {statistics.median(values):10.3f} {values[math.ceil(len(values)*.95)-1]:10.3f}')
+    totals = sorted(float(row['total_ms']) for row in rows)
+    print(f'total: p99={totals[math.ceil(len(totals)*.99)-1]:.3f} ms; '
+          f'max={totals[-1]:.3f} ms; >25 ms={sum(v > 25 for v in totals)}/{len(totals)}')

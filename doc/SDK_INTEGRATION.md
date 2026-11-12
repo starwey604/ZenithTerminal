@@ -119,7 +119,8 @@ host protoc。应用 `find_package()` 指定 staging 中的 CMake 配置，不�
 
 首个示例静态链接应用依赖，libc 和 C++ 系统运行库仍动态链接。Paho TLS
 关闭；默认 SDL 只启用离屏所需能力。可选 `ZT_ENABLE_PREVIEW=ON` 为本机开启
-X11/XWayland 窗口，所有构建均关闭 SDL KMSDRM。BUAA 子模块保持原版本，
+Wayland/X11 窗口和 OpenGL writeback 预览；板端 preview=OFF 不引入这些依赖。
+所有构建均关闭 SDL KMSDRM。BUAA 子模块保持原版本，
 尚未链接；其拆分与 VAAPI/MPP 在后续里程碑接入。
 各依赖版本见 [第三方依赖](../3rdparty/README.md)，后续路线见
 [开发计划](DEVELOPMENT_PLAN.md)。

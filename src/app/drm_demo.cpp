@@ -19,6 +19,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace {
 volatile std::sig_atomic_t interrupted = 0;
@@ -31,22 +32,33 @@ int count(const std::string& value) {
 void fill_video(const zenith::display::MappedImage& image, unsigned frame) {
     auto* yplane = reinterpret_cast<std::uint8_t*>(image.pixels);
     auto* uvplane = yplane + image.uv_offset;
-    // Muted full-range BT.601 color bars; a moving grid makes successive frames distinguishable.
+    struct Yuv { std::uint8_t y, u, v; };
+    const auto convert = [](int r, int g, int b) -> Yuv {
+        return {static_cast<std::uint8_t>((77*r + 150*g + 29*b + 128) >> 8),
+            static_cast<std::uint8_t>(((-43*r - 85*g + 128*b + 128) >> 8) + 128),
+            static_cast<std::uint8_t>(((128*r - 107*g - 21*b + 128) >> 8) + 128)};
+    };
     constexpr std::array<std::array<int, 3>, 8> rgb{{{185,198,208},{180,163,62},{55,174,178},{65,157,110},
         {144,92,163},{182,78,81},{65,106,174},{28,39,51}}};
-    for (int y = 0; y < image.height; y += 2) for (int x = 0; x < image.width; x += 2) {
-        const auto c = rgb[std::min(7, x * 8 / image.width)];
-        int r = c[0], g = c[1], b = c[2];
-        if (y < image.height * 3 / 4) {
-            r = 19 + y * 15 / image.height; g = 40 + y * 25 / image.height; b = 57 + y * 30 / image.height;
-            if ((x + static_cast<int>(frame * 2)) % 128 < 2 || y % 80 < 2) { r += 24; g += 36; b += 39; }
+    std::array<Yuv, 8> bars;
+    for (unsigned i = 0; i < bars.size(); ++i) bars[i] = convert(rgb[i][0],rgb[i][1],rgb[i][2]);
+    // The original picture is constant within each 2x2 block. Hoist color
+    // conversion and bar division out of the pixel loop, without caching frames.
+    std::vector<Yuv> columns(image.width / 2);
+    for (int x = 0; x < image.width; x += 2) columns[x/2] = bars[std::min(7,x*8/image.width)];
+    const Yuv gray{static_cast<std::uint8_t>(80 + frame%64),128,128};
+    for (int y = 0; y < image.height; y += 2) {
+        const bool upper = y < image.height * 3 / 4;
+        const int r = 19+y*15/image.height, g = 40+y*25/image.height, b = 57+y*30/image.height;
+        const auto base = convert(r,g,b), grid = convert(r+24,g+36,b+39);
+        for (int x = 0; x < image.width; x += 2) {
+            Yuv c = upper ? (((x + static_cast<int>(frame*2)) % 128 < 2 || y%80 < 2) ? grid : base) : columns[x/2];
+            if (x < 160 && y >= image.height - 64) c = gray;
+            const std::uint16_t yy = c.y * 257;
+            std::memcpy(yplane+y*image.pitch+x, &yy, 2);
+            std::memcpy(yplane+(y+1)*image.pitch+x, &yy, 2);
+            uvplane[(y/2)*image.pitch+x] = c.u; uvplane[(y/2)*image.pitch+x+1] = c.v;
         }
-        int yy = (77*r + 150*g + 29*b + 128) >> 8;
-        int u = ((-43*r - 85*g + 128*b + 128) >> 8) + 128;
-        int v = ((128*r - 107*g - 21*b + 128) >> 8) + 128;
-        if (x < 160 && y >= image.height - 64) { yy = 80 + frame % 64; u = v = 128; }
-        for (int dy = 0; dy < 2; ++dy) for (int dx = 0; dx < 2; ++dx) yplane[(y+dy)*image.pitch+x+dx] = yy;
-        uvplane[(y/2)*image.pitch+x] = u; uvplane[(y/2)*image.pitch+x+1] = v;
     }
 }
 void fill_source(const zenith::display::MappedImage& image, unsigned frame, zenith::display::VideoFormat format) {
@@ -84,23 +96,30 @@ void save(const std::string& path, const zenith::display::CapturedImage& image) 
 }
 int run_drm_demo(int argc, char** argv) {
     try {
-        bool test_only = false, preview = false, take_over = false, uncapped = false;
+        bool test_only = false, preview = false, take_over = false, uncapped = false, pipeline = false;
 #ifdef ZT_ENABLE_PREVIEW
         preview = true;
 #endif
         zenith::display::DisplayOptions options;
-        int frames = 300, warmup = 10;
+        int frames = 300, warmup = 10, width = 1280, height = 720;
         std::string device, capture, profile;
         for (int i = 1; i < argc; ++i) {
             const std::string arg = argv[i];
-            if (arg == "--test-only") test_only = true;
+            if (arg == "--pipeline") pipeline = true;
+            else if (arg == "--test-only") test_only = true;
             else if (arg == "--uncapped") uncapped = true;
             else if (arg == "--take-over") take_over = true;
             else if (arg == "--no-writeback") options.writeback = false;
             else if (arg == "--no-preview") preview = false;
-            else if ((arg == "--device" || arg == "--frames" || arg == "--capture" || arg == "--profile" || arg == "--warmup" || arg == "--video-format" || arg == "--state") && i + 1 < argc) {
+            else if ((arg == "--size" || arg == "--device" || arg == "--frames" || arg == "--capture" || arg == "--profile" || arg == "--warmup" || arg == "--video-format" || arg == "--state") && i + 1 < argc) {
                 const std::string value = argv[++i];
-                if (arg == "--device") device = value;
+                if (arg == "--size") {
+                    const auto split = value.find('x');
+                    if (split == std::string::npos) throw std::runtime_error("size must be WIDTHxHEIGHT");
+                    width = count(value.substr(0, split)); height = count(value.substr(split + 1));
+                    if (width < 320 || height < 240 || width > 4096 || height > 2160 || width % 2 || height % 2)
+                        throw std::runtime_error("size must be even and within 320x240..4096x2160");
+                } else if (arg == "--device") device = value;
                 else if (arg == "--frames") frames = count(value);
                 else if (arg == "--capture") capture = value;
                 else if (arg == "--profile") profile = value;
@@ -113,7 +132,7 @@ int run_drm_demo(int argc, char** argv) {
                     options.full_state_each_frame = value == "full";
                 }
             } else if (arg == "--help") {
-                std::cout << "ZenithTerminal --drm-demo [--test-only] [--take-over] [--no-preview] [--frames N] [--capture out.bmp] [--device /dev/dri/cardN] [--profile out.csv] [--warmup N] [--uncapped] [--video-format nv12|xrgb] [--no-writeback] [--state full|delta]\n"
+                std::cout << "ZenithTerminal --drm-demo [--size WIDTHxHEIGHT] [--pipeline] [--test-only] [--take-over] [--no-preview] [--frames N] [--capture out.bmp] [--device /dev/dri/cardN] [--profile out.csv] [--warmup N] [--uncapped] [--video-format nv12|xrgb] [--no-writeback] [--state full|delta]\n"
                     "Default: VKMS, 1280x720, 300 frames; N=0 runs until Escape/SIGINT. Requires DRM master; --take-over permits replacing inherited active state.\n";
                 return 0;
             } else throw std::runtime_error("unknown/missing demo argument: " + arg);
@@ -124,7 +143,7 @@ int run_drm_demo(int argc, char** argv) {
         if (!profile.empty()) {
             csv.open(profile);
             if (!csv) throw std::runtime_error("cannot open profile CSV: " + profile);
-            csv << "frame,warmup,video_ms,ui_ms,request_ms,commit_ms,writeback_ms,verify_ms,preview_ms,capture_ms,work_ms,pacing_ms,total_ms\n";
+            csv << "frame,warmup,prepared_frame,video_ms,ui_ms,request_ms,commit_ms,writeback_ms,verify_ms,preview_ms,capture_ms,work_ms,pacing_ms,total_ms\n";
             csv << std::fixed << std::setprecision(6);
         }
         if (device.empty()) {
@@ -132,16 +151,16 @@ int run_drm_demo(int argc, char** argv) {
                 if (zenith::display::driver_name(path) == "vkms") { device = path; break; }
             if (device.empty()) throw std::runtime_error("no VKMS card found");
         }
-        zenith::display::AtomicDisplay display(device, 1280, 720, take_over, options);
+        zenith::display::AtomicDisplay display(device, width, height, take_over, options);
         std::cout << display.description() << '\n' << std::flush;
         auto first = display.next_frame(); fill_source(first.video, 0, options.video_format);
-        zenith::ui::draw(first.ui_argb.pixels, 1280, 720, first.ui_argb.pitch, 0);
+        zenith::ui::draw(first.ui_argb.pixels, width, height, first.ui_argb.pitch, 0);
         display.test_only(first.slot);
         std::cout << "ATOMIC TEST_ONLY PASS (real two-plane framebuffers, writeback=" << options.writeback << ")\n" << std::flush;
         if (test_only) return 0;
 #ifdef ZT_ENABLE_PREVIEW
         std::unique_ptr<zenith::Preview> window;
-        if (preview) window = std::make_unique<zenith::Preview>(1280, 720);
+        if (preview) window = std::make_unique<zenith::Preview>(width, height);
 #else
         (void)preview;
 #endif
@@ -149,16 +168,37 @@ int run_drm_demo(int argc, char** argv) {
         const auto old_int = std::signal(SIGINT, stop), old_term = std::signal(SIGTERM, stop);
         struct RestoreSignals { decltype(old_int) a, b; ~RestoreSignals() { std::signal(SIGINT,a); std::signal(SIGTERM,b); } } restore{old_int,old_term};
         unsigned completed = 0;
+        auto prepared_targets = first;
         const auto start = std::chrono::steady_clock::now();
         for (unsigned frame = 0; !interrupted && (!frames || frame < static_cast<unsigned>(frames)); ++frame) {
             using Clock = std::chrono::steady_clock;
             const auto begin = Clock::now();
-            auto targets = display.next_frame(); fill_source(targets.video, frame, options.video_format);
-            const auto generated = Clock::now();
-            zenith::ui::draw(targets.ui_argb.pixels, 1280, 720, targets.ui_argb.pitch, frame);
-            const auto drawn = Clock::now();
+            auto ms = [](auto a, auto b) { return std::chrono::duration<double, std::milli>(b-a).count(); };
+            double video_ms = 0, ui_ms = 0;
+            int prepared_frame = -1;
+            auto prepare = [&](unsigned number) {
+                const auto before = Clock::now();
+                auto targets = display.next_frame();
+                fill_source(targets.video, number, options.video_format);
+                const auto generated = Clock::now();
+                zenith::ui::draw(targets.ui_argb.pixels, width, height, targets.ui_argb.pitch, number);
+                video_ms = ms(before, generated); ui_ms = ms(generated, Clock::now());
+                prepared_frame = number;
+                return targets;
+            };
             zenith::display::PresentTiming timing;
-            const auto image = display.present(targets.slot, &timing);
+            zenith::display::CapturedImage image;
+            if (pipeline) {
+                display.submit(prepared_targets.slot, &timing);
+                // Blocking commit has released the previous scanning slot. Its
+                // CPU writes can overlap the new slot's independent writeback.
+                if (!interrupted && (!frames || frame + 1 < static_cast<unsigned>(frames)))
+                    prepared_targets = prepare(frame + 1);
+                image = display.finish(&timing);
+            } else {
+                const auto targets = prepare(frame);
+                image = display.present(targets.slot, &timing);
+            }
             const auto presented = Clock::now();
             if (options.writeback) verify(image, frame);
             ++completed;
@@ -173,9 +213,8 @@ int run_drm_demo(int argc, char** argv) {
             if (completed % 60 == 0) std::cout << (options.writeback ? "WRITEBACK PASS frames=" : "SCANOUT frames=") << completed << (options.writeback ? " alpha=0/128/255\n" : " (no capture validation)\n") << std::flush;
             if (!uncapped) std::this_thread::sleep_until(start + std::chrono::milliseconds((frame+1)*33));
             const auto end = Clock::now();
-            auto ms = [](auto a, auto b) { return std::chrono::duration<double, std::milli>(b-a).count(); };
             if (csv) csv << frame << ',' << (frame < static_cast<unsigned>(warmup)) << ','
-                << ms(begin,generated) << ',' << ms(generated,drawn) << ',' << timing.request_ms << ','
+                << prepared_frame << ',' << video_ms << ',' << ui_ms << ',' << timing.request_ms << ','
                 << timing.commit_ms << ',' << timing.writeback_ms << ',' << ms(presented,verified) << ','
                 << ms(captured,shown) << ',' << ms(verified,captured) << ',' << ms(begin,shown) << ','
                 << ms(shown,end) << ',' << ms(begin,end) << '\n';

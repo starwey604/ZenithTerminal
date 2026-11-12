@@ -1,4 +1,4 @@
-Subject: [PATCH] drm/vkms: accelerate YUV arithmetic and cache exact NV12 terms
+Subject: [PATCH] drm/vkms: optimize NV12/ARGB composition and retain active consumers
 
 Use portable bit scans for YUV fixed-point multiplication and precompute
 8-bit NV12 channel contributions once before device registration. Keep
@@ -6,8 +6,19 @@ existing scaling, truncation, rounding, matrices and rotated chroma siting.
 Dispatch XRGB8888 writeback once per row instead of indirectly per pixel.
 Copy opaque pixels and skip zero transparent pixels with identical blending
 semantics; retain the original equation for every other alpha/color value.
+Skip the identity color-transform pass when no color pipeline is selected.
 Tables occupy 108 KiB across six encoding/range pairs and become read-only
 after module init. Other pixel formats retain their existing readers.
+Fuse ARGB8888 expansion/blending without a color pipeline; read opaque NV12
+straight into the output row. Keep CRC, geometry, alpha and color semantics.
+Reference-count composer users so deferred writeback cleanup cannot disable
+another writeback job or CRC capture. Initialize and queue writeback before
+publishing wb_pending; read its job pointer under the same lock.
+The composer reference operations adapt atipre's
+"drm/vkms: Keep composition enabled for concurrent users" (2026-10-26):
+https://go.mail-archive.com/dri-devel@lists.freedesktop.org/msg646844.html
+Skip ticks with neither pending writeback nor an active CRC reader. Keep the
+ordered composer workqueue, using WQ_HIGHPRI for ordinary scheduling priority.
 Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
 
 --- a/drivers/gpu/drm/vkms/vkms_drv.c
@@ -39,7 +50,49 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
  #include <linux/kernel.h>
  #include <linux/minmax.h>
  
-@@ -269,6 +271,40 @@
+@@ -211,6 +213,41 @@
+ 	return out_pixel;
+ }
+ 
++/* Same u32 wrap and rounding as the composer's premultiplied equation. */
++static u16 vkms_blend_u8_channel(u8 src, u16 dst, u16 alpha)
++{
++	u32 value = (u32)src * 257 * 0xffff + (u32)dst * (0xffff - alpha);
++
++	return DIV_ROUND_CLOSEST(value, 0xffff);
++}
++
++/* Used only with no color pipeline: combine expansion and blending in one pass. */
++void vkms_argb8888_blend_line(const struct vkms_plane_state *plane, int x_start,
++			     int y_start, enum pixel_read_direction direction, int count,
++			     struct pixel_argb_u16 out[])
++{
++	int step = get_block_step_bytes(plane->frame_info->fb, direction, 0);
++	u8 *src;
++
++	packed_pixels_addr_1x1(plane->frame_info, x_start, y_start, 0, &src);
++	for (int i = 0; i < count; i++) {
++		u16 alpha = src[3] * 257;
++
++		if (alpha == 0xffff) {
++			out[i] = argb_u16_from_u8888(255, src[2], src[1], src[0]);
++		} else if (src[0] | src[1] | src[2] | src[3]) {
++			out[i].a = 0xffff;
++			out[i].r = vkms_blend_u8_channel(src[2], out[i].r, alpha);
++			out[i].g = vkms_blend_u8_channel(src[1], out[i].g, alpha);
++			out[i].b = vkms_blend_u8_channel(src[0], out[i].b, alpha);
++		} else {
++			out[i].a = 0xffff;
++		}
++		if (i + 1 < count)
++			src += step;
++	}
++}
++
+ static struct pixel_argb_u16 argb_u16_from_u16161616(u16 a, u16 r, u16 g, u16 b)
+ {
+ 	struct pixel_argb_u16 out_pixel;
+@@ -269,6 +306,40 @@
  	return out_pixel;
  }
  
@@ -80,7 +133,7 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
  VISIBLE_IF_KUNIT
  struct pixel_argb_u16 argb_u16_from_yuv161616(const struct conversion_matrix *matrix,
  					      u16 y, u16 channel_1, u16 channel_2)
-@@ -281,15 +317,15 @@
+@@ -281,15 +352,15 @@
  	fp_channel_1 = drm_int2fixp((int)channel_1 - 128 * 257);
  	fp_channel_2 = drm_int2fixp((int)channel_2 - 128 * 257);
  
@@ -105,7 +158,7 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
  
  	fp_r = drm_fixp2int_round(fp_r);
  	fp_g = drm_fixp2int_round(fp_g);
-@@ -302,6 +338,90 @@
+@@ -302,6 +373,102 @@
  	return argb_u16_from_u16161616(0xffff, r, g, b);
  }
  EXPORT_SYMBOL_IF_KUNIT(argb_u16_from_yuv161616);
@@ -183,20 +236,32 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
 +
 +	packed_pixels_addr_1x1(plane->frame_info, x_start, y_start, 0, &y);
 +	packed_pixels_addr_1x1(plane->frame_info, x_start / 2, y_start / 2, 1, &uv);
-+	chroma = vkms_nv12_chroma(lut, uv[0], uv[1]);
-+	for (i = 0; i < count; i++) {
-+		out_pixel[i] = argb_u16_from_nv12_lut(lut, y[0], chroma);
++	/* Align to a chroma pair, then convert two Y samples per UV lookup. */
++	i = 0;
++	if (offset & 1) {
++		chroma = vkms_nv12_chroma(lut, uv[0], uv[1]);
++		out_pixel[i++] = argb_u16_from_nv12_lut(lut, y[0], chroma);
 +		y += step_y;
-+		if (!((i + offset + 1) & 1) && i + 1 < count) {
++		if (i < count)
 +			uv += step_uv;
-+			chroma = vkms_nv12_chroma(lut, uv[0], uv[1]);
-+		}
++	}
++	for (; i + 1 < count; i += 2) {
++		chroma = vkms_nv12_chroma(lut, uv[0], uv[1]);
++		out_pixel[i] = argb_u16_from_nv12_lut(lut, y[0], chroma);
++		out_pixel[i + 1] = argb_u16_from_nv12_lut(lut, y[step_y], chroma);
++		y += 2 * step_y;
++		if (i + 2 < count)
++			uv += step_uv;
++	}
++	if (i < count) {
++		chroma = vkms_nv12_chroma(lut, uv[0], uv[1]);
++		out_pixel[i] = argb_u16_from_nv12_lut(lut, y[0], chroma);
 +	}
 +}
  
  /**
   * READ_LINE() - Generic generator for a read_line function which can be used for format with one
-@@ -657,6 +777,15 @@
+@@ -657,6 +824,15 @@
  	*pixel = cpu_to_le16(r << 11 | g << 5 | b);
  }
  
@@ -212,7 +277,7 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
  /**
   * vkms_writeback_row() - Generic loop for all supported writeback format. It is executed just
   * after the blending to write a line in the writeback buffer.
-@@ -676,6 +805,11 @@
+@@ -676,6 +852,11 @@
  	packed_pixels_addr(frame_info, x_dst, y, 0, &dst_pixels, &rem_x, &rem_y);
  	struct pixel_argb_u16 *in_pixels = src_buffer->pixels;
  	int x_limit = min_t(size_t, drm_rect_width(&frame_info->dst), src_buffer->n_pixels);
@@ -224,7 +289,7 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
  
  	for (size_t x = 0; x < x_limit; x++, dst_pixels += frame_info->fb->format->cpp[0])
  		wb->pixel_write(dst_pixels, &in_pixels[x]);
-@@ -720,6 +854,7 @@
+@@ -720,6 +901,7 @@
  	case DRM_FORMAT_BGR565:
  		return &BGR565_read_line;
  	case DRM_FORMAT_NV12:
@@ -232,7 +297,7 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
  	case DRM_FORMAT_NV16:
  	case DRM_FORMAT_NV24:
  	case DRM_FORMAT_NV21:
-@@ -969,3 +1104,18 @@
+@@ -969,3 +1151,18 @@
  		BUG();
  	}
  }
@@ -253,18 +318,29 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
 +}
 --- a/drivers/gpu/drm/vkms/vkms_formats.h
 +++ b/drivers/gpu/drm/vkms/vkms_formats.h
-@@ -4,6 +4,8 @@
+@@ -4,6 +4,11 @@
  #define _VKMS_FORMATS_H_
  
  #include "vkms_drv.h"
 +
 +void vkms_init_nv12_luts(void);
++void vkms_argb8888_blend_line(const struct vkms_plane_state *plane, int x_start,
++			     int y_start, enum pixel_read_direction direction, int count,
++			     struct pixel_argb_u16 out[]);
  
  pixel_read_line_t get_pixel_read_line_function(u32 format);
  
 --- a/drivers/gpu/drm/vkms/vkms_composer.c
 +++ b/drivers/gpu/drm/vkms/vkms_composer.c
-@@ -48,6 +48,15 @@
+@@ -15,6 +15,7 @@
+ #include <kunit/visibility.h>
+ 
+ #include "vkms_composer.h"
++#include "vkms_formats.h"
+ #include "vkms_luts.h"
+ 
+ static u16 pre_mul_blend_channel(u16 src, u16 dst, u16 alpha)
+@@ -48,6 +49,15 @@
  	const struct pixel_argb_u16 *in = &stage_buffer->pixels[x_start];
  
  	for (int i = 0; i < pixel_count; i++) {
@@ -280,3 +356,289 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
  		out[i].a = (u16)0xffff;
  		out[i].r = pre_mul_blend_channel(in[i].r, out[i].r, in[i].a);
  		out[i].g = pre_mul_blend_channel(in[i].g, out[i].g, in[i].a);
+@@ -194,6 +204,10 @@
+ 				      struct line_buffer *output_buffer)
+ {
+ 	struct pixel_argb_s32 pixel;
++
++	/* With no color pipeline, UNORM -> signed -> clamp -> UNORM is identity. */
++	if (!plane_state->base.base.color_pipeline)
++		return;
+ 
+ 	for (size_t x = 0; x < output_buffer->n_pixels; x++) {
+ 		struct drm_colorop *colorop = plane_state->base.base.color_pipeline;
+@@ -448,6 +462,21 @@
+ 	 * inside the source buffer [2] and we don't write outside the stage
+ 	 * buffer [1].
+ 	 */
++	if (!current_plane->base.base.color_pipeline) {
++		/* NV12 is fully opaque: read straight to the destination, no blend needed. */
++		if (current_plane->frame_info->fb->format->format == DRM_FORMAT_NV12) {
++			current_plane->pixel_read_line(current_plane, src_x_start, src_y_start,
++					       direction, pixel_count,
++					       &output_buffer->pixels[dst_x_start]);
++			return;
++		}
++		if (current_plane->frame_info->fb->format->format == DRM_FORMAT_ARGB8888) {
++			vkms_argb8888_blend_line(current_plane, src_x_start, src_y_start,
++					 direction, pixel_count,
++					 &output_buffer->pixels[dst_x_start]);
++			return;
++		}
++	}
+ 	current_plane->pixel_read_line(current_plane, src_x_start, src_y_start, direction,
+ 				       pixel_count, &stage_buffer->pixels[dst_x_start]);
+ 	pre_blend_color_transform(current_plane, stage_buffer);
+@@ -603,18 +632,23 @@
+ 							  struct vkms_crtc_state,
+ 							  composer_work);
+ 	struct drm_crtc *crtc = crtc_state->base.crtc;
+-	struct vkms_writeback_job *active_wb = crtc_state->active_writeback;
++	struct vkms_writeback_job *active_wb;
+ 	struct vkms_output *out = drm_crtc_to_vkms_output(crtc);
+-	bool crc_pending, wb_pending;
++	bool crc_pending, wb_pending, crc_enabled;
+ 	u64 frame_start, frame_end;
+ 	u32 crc32 = 0;
+ 	int ret;
++
++	spin_lock_irq(&out->lock);
++	crc_enabled = out->crc_enabled;
++	spin_unlock_irq(&out->lock);
+ 
+ 	spin_lock_irq(&out->composer_lock);
+ 	frame_start = crtc_state->frame_start;
+ 	frame_end = crtc_state->frame_end;
+ 	crc_pending = crtc_state->crc_pending;
+ 	wb_pending = crtc_state->wb_pending;
++	active_wb = crtc_state->active_writeback;
+ 	crtc_state->frame_start = 0;
+ 	crtc_state->frame_end = 0;
+ 	crtc_state->crc_pending = false;
+@@ -641,6 +675,12 @@
+ 	 * the crc, nothing to do.
+ 	 */
+ 	if (!crc_pending)
++		return;
++
++	/* Writeback cleanup is deferred. A queued tick after its fence signalled
++	 * has no consumer unless a CRC reader is active; do not compose it again.
++	 */
++	if (!wb_pending && !crc_enabled)
+ 		return;
+ 
+ 	if (wb_pending)
+@@ -705,19 +745,45 @@
+ 	return 0;
+ }
+ 
+-void vkms_set_composer(struct vkms_output *out, bool enabled)
+-{
+-	bool old_enabled;
+-
+-	if (enabled)
+-		drm_crtc_vblank_get(&out->crtc);
++/* Keep composition alive until both CRC capture and all writeback jobs release it.
++ * In particular, deferred cleanup of job N must not turn off job N+1.
++ */
++int vkms_composer_get(struct vkms_output *out)
++{
++	bool already_enabled;
++	int ret;
+ 
+ 	spin_lock_irq(&out->lock);
+-	old_enabled = out->composer_enabled;
+-	out->composer_enabled = enabled;
++	if (out->composer_users) {
++		out->composer_users++;
++		spin_unlock_irq(&out->lock);
++		return 0;
++	}
+ 	spin_unlock_irq(&out->lock);
+ 
+-	if (old_enabled)
++	ret = drm_crtc_vblank_get(&out->crtc);
++	if (ret)
++		return ret;
++
++	spin_lock_irq(&out->lock);
++	already_enabled = out->composer_users != 0;
++	out->composer_users++;
++	spin_unlock_irq(&out->lock);
++
++	/* Concurrent first users each obtained a vblank reference; retain only one. */
++	if (already_enabled)
++		drm_crtc_vblank_put(&out->crtc);
++	return 0;
++}
++
++void vkms_composer_put(struct vkms_output *out)
++{
++	bool last_user;
++
++	spin_lock_irq(&out->lock);
++	last_user = --out->composer_users == 0;
++	spin_unlock_irq(&out->lock);
++	if (last_user)
+ 		drm_crtc_vblank_put(&out->crtc);
+ }
+ 
+@@ -729,7 +795,17 @@
+ 
+ 	ret = vkms_crc_parse_source(src_name, &enabled);
+ 
+-	vkms_set_composer(out, enabled);
+-
+-	return ret;
+-}
++	if (ret)
++		return ret;
++	if (enabled) {
++		ret = vkms_composer_get(out);
++		if (ret)
++			return ret;
++	}
++	spin_lock_irq(&out->lock);
++	out->crc_enabled = enabled;
++	spin_unlock_irq(&out->lock);
++	if (!enabled)
++		vkms_composer_put(out);
++	return 0;
++}
+--- a/drivers/gpu/drm/vkms/vkms_drv.h
++++ b/drivers/gpu/drm/vkms/vkms_drv.h
+@@ -89,6 +89,7 @@
+ 	struct iosys_map data[DRM_FORMAT_MAX_PLANES];
+ 	struct vkms_frame_info wb_frame_info;
+ 	pixel_write_t pixel_write;
++	bool composer_ref;
+ };
+ 
+ /**
+@@ -210,8 +211,8 @@
+  *	       vblank timestamps
+  * @composer_workq: Ordered workqueue for @composer_state.composer_work.
+  * @lock: Lock used to protect concurrent access to the composer
+- * @composer_enabled: Protected by @lock, true when the VKMS composer is active (crc needed or
+- *		      writeback)
++ * @composer_users: Protected by @lock, number of CRC capture and writeback users
++ * @crc_enabled: Protected by @lock, true while a CRC reader needs every frame
+  * @composer_state: Protected by @lock, current state of this VKMS output
+  * @composer_lock: Lock used internally to protect @composer_state members
+  */
+@@ -222,7 +223,8 @@
+ 	struct workqueue_struct *composer_workq;
+ 	spinlock_t lock;
+ 
+-	bool composer_enabled;
++	unsigned int composer_users;
++	bool crc_enabled;
+ 	struct vkms_crtc_state *composer_state;
+ 
+ 	spinlock_t composer_lock;
+@@ -317,7 +319,8 @@
+ 
+ /* Composer Support */
+ void vkms_composer_worker(struct work_struct *work);
+-void vkms_set_composer(struct vkms_output *out, bool enabled);
++int vkms_composer_get(struct vkms_output *out);
++void vkms_composer_put(struct vkms_output *out);
+ void vkms_writeback_row(struct vkms_writeback_job *wb, const struct line_buffer *src_buffer, int y);
+ 
+ /* Writeback */
+--- a/drivers/gpu/drm/vkms/vkms_crtc.c
++++ b/drivers/gpu/drm/vkms/vkms_crtc.c
+@@ -17,7 +17,7 @@
+ {
+ 	struct vkms_output *output = drm_crtc_to_vkms_output(crtc);
+ 	struct vkms_crtc_state *state;
+-	bool ret, fence_cookie;
++	bool ret, fence_cookie, composer_enabled;
+ 
+ 	fence_cookie = dma_fence_begin_signalling();
+ 
+@@ -27,9 +27,10 @@
+ 		DRM_ERROR("vkms failure on handling vblank");
+ 
+ 	state = output->composer_state;
++	composer_enabled = output->composer_users != 0;
+ 	spin_unlock(&output->lock);
+ 
+-	if (state && output->composer_enabled) {
++	if (state && composer_enabled) {
+ 		u64 frame = drm_crtc_accurate_vblank_count(crtc);
+ 
+ 		/* update frame_start only if a queued vkms_composer_worker()
+@@ -233,7 +234,7 @@
+ 	spin_lock_init(&vkms_out->lock);
+ 	spin_lock_init(&vkms_out->composer_lock);
+ 
+-	vkms_out->composer_workq = drmm_alloc_ordered_workqueue(dev, "vkms_composer", 0);
++	vkms_out->composer_workq = drmm_alloc_ordered_workqueue(dev, "vkms_composer", WQ_HIGHPRI);
+ 	if (IS_ERR(vkms_out->composer_workq))
+ 		return ERR_CAST(vkms_out->composer_workq);
+ 
+--- a/drivers/gpu/drm/vkms/vkms_writeback.c
++++ b/drivers/gpu/drm/vkms/vkms_writeback.c
+@@ -1,5 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0+
+ 
++#include <linux/dma-fence.h>
+ #include <linux/iosys-map.h>
+ 
+ #include <drm/drm_atomic.h>
+@@ -118,7 +119,9 @@
+ 
+ 	drm_framebuffer_put(vkmsjob->wb_frame_info.fb);
+ 
+-	vkms_set_composer(vkms_output, false);
++	/* Preparation may be cancelled before acquiring a composer reference. */
++	if (vkmsjob->composer_ref)
++		vkms_composer_put(vkms_output);
+ 	kfree(vkmsjob);
+ }
+ 
+@@ -137,23 +140,37 @@
+ 	struct vkms_writeback_job *active_wb;
+ 	struct vkms_frame_info *wb_frame_info;
+ 	u32 wb_format = fb->format->format;
++	int ret;
+ 
+ 	if (!conn_state)
+ 		return;
+ 
+-	vkms_set_composer(output, true);
+-
+ 	active_wb = conn_state->writeback_job->priv;
++	ret = vkms_composer_get(output);
++	if (ret) {
++		struct drm_writeback_job *job = conn_state->writeback_job;
++
++		conn_state->writeback_job = NULL;
++		if (job->out_fence) {
++			dma_fence_set_error(job->out_fence, ret);
++			dma_fence_signal(job->out_fence);
++		}
++		drm_writeback_cleanup_job(job);
++		return;
++	}
++	active_wb->composer_ref = true;
+ 	wb_frame_info = &active_wb->wb_frame_info;
+ 
++	active_wb->pixel_write = get_pixel_write_function(wb_format);
++	drm_rect_init(&wb_frame_info->src, 0, 0, crtc_width, crtc_height);
++	drm_rect_init(&wb_frame_info->dst, 0, 0, crtc_width, crtc_height);
++
++	/* Initialize and enqueue before the worker can observe wb_pending. */
++	drm_writeback_queue_job(wb_conn, connector_state);
+ 	spin_lock_irq(&output->composer_lock);
+ 	crtc_state->active_writeback = active_wb;
+ 	crtc_state->wb_pending = true;
+ 	spin_unlock_irq(&output->composer_lock);
+-	drm_writeback_queue_job(wb_conn, connector_state);
+-	active_wb->pixel_write = get_pixel_write_function(wb_format);
+-	drm_rect_init(&wb_frame_info->src, 0, 0, crtc_width, crtc_height);
+-	drm_rect_init(&wb_frame_info->dst, 0, 0, crtc_width, crtc_height);
+ }
+ 
+ static const struct drm_connector_helper_funcs vkms_wb_conn_helper_funcs = {

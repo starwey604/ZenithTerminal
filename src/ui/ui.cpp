@@ -20,7 +20,10 @@ void draw(void* pixels, int width, int height, int pitch, std::uint64_t frame) {
     // Layout uses a 1280x720 design canvas; the mapped target remains the DRM buffer.
     ok(SDL_SetRenderScale(r, width / 1280.0f, height / 720.0f));
     auto rect = [&](float x, float y, float w, float h, Uint8 red, Uint8 green, Uint8 blue, Uint8 alpha) {
-        ok(SDL_SetRenderDrawColor(r, red, green, blue, alpha));
+        // Blend mode NONE writes these values directly. Premultiply once per
+        // draw color instead of walking the entire framebuffer afterwards.
+        ok(SDL_SetRenderDrawColor(r, (red*alpha+127)/255, (green*alpha+127)/255,
+                                 (blue*alpha+127)/255, alpha));
         SDL_FRect area{x, y, w, h}; ok(SDL_RenderFillRect(r, &area));
     };
     auto text = [&](float x, float y, const std::string& value, Uint8 red = 221, Uint8 green = 234, Uint8 blue = 241, float scale = 2.0f) {
@@ -59,16 +62,6 @@ void draw(void* pixels, int width, int height, int pitch, std::uint64_t frame) {
     rect(64, height - 40.0f, 24, 24, 255, 255, 255, 128);
     rect(104, height - 40.0f, 24, 24, 255, 255, 255, 255);
     ok(SDL_RenderPresent(r));
-    // KMS default blending is premultiplied; SDL software draw above writes straight RGB.
-    for (int y = 0; y < height; ++y) {
-        auto* row = static_cast<std::uint8_t*>(pixels) + y * pitch;
-        for (int x = 0; x < width; ++x) {
-            std::uint32_t p; std::memcpy(&p, row + 4*x, 4);
-            const auto a = p >> 24;
-            p = (a << 24) | (((((p >> 16) & 255) * a + 127) / 255) << 16) |
-                (((((p >> 8) & 255) * a + 127) / 255) << 8) | (((p & 255) * a + 127) / 255);
-            std::memcpy(row + 4*x, &p, 4);
-        }
-    }
+
 }
 } // namespace zenith::ui
