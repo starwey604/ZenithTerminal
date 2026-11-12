@@ -8,7 +8,7 @@ namespace zenith::ui {
 namespace {
 void ok(bool success) { if (!success) throw std::runtime_error(SDL_GetError()); }
 }
-void draw(void* pixels, int width, int height, int pitch, std::uint64_t frame) {
+void draw(void* pixels, int width, int height, int pitch, std::uint64_t frame, std::string_view source) {
     std::unique_ptr<SDL_Surface, decltype(&SDL_DestroySurface)> surface(
         SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_ARGB8888, pixels, pitch), SDL_DestroySurface);
     if (!surface) throw std::runtime_error(SDL_GetError());
@@ -40,17 +40,17 @@ void draw(void* pixels, int width, int height, int pitch, std::uint64_t frame) {
     text(48, 134, "DISPLAY PIPELINE", 78, 231, 193);
     text(48, 166, "01  NV12 SOURCE"); text(48, 190, "02  SDL UI");
     text(48, 214, "03  KMS COMPOSITE"); text(48, 238, "04  WRITEBACK");
-    text(48, 270, "GENERATED SOURCE", 125, 155, 170);
+    text(48, 270, source.empty() ? "GENERATED SOURCE" : std::string(source), 125, 155, 170);
     rect(960, 112, 292, 114, 7, 16, 24, 198);
     text(980, 134, "FRAME / " + std::to_string(frame), 78, 231, 193);
-    text(980, 164, "2 PLANES / 2 SLOTS"); text(980, 190, "LINEAR BUFFERS", 125, 155, 170);
+    text(980, 164, source.empty() ? "2 PLANES / 2 SLOTS" : "2 PLANES / NV12"); text(980, 190, "LINEAR BUFFERS", 125, 155, 170);
     // Sparse reticle leaves the video plane visible over most of the canvas.
     rect(600, 359, 26, 2, 78, 231, 193, 230); rect(654, 359, 26, 2, 78, 231, 193, 230);
     rect(639, 320, 2, 26, 78, 231, 193, 230); rect(639, 374, 2, 26, 78, 231, 193, 230);
     rect(635, 355, 10, 10, 78, 231, 193, 140);
     rect(28, 526, 1224, 66, 7, 16, 24, 195);
     text(48, 546, "LIVE COMPOSITION", 78, 231, 193);
-    text(48, 568, "NV12 color bars + moving grid. Captured after the writeback fence.", 158, 182, 195, 1.5f);
+    text(48, 568, source.empty() ? "NV12 color bars + moving grid. Captured after the writeback fence." : "HEVC > VAAPI > CPU NV12 staging. Real two-plane writeback.", 158, 182, 195, 1.5f);
     rect(28, 614, 1224, 3, 56, 78, 91, 180);
     rect(28, 614, static_cast<float>((frame % 180) * 1224 / 180), 3, 78, 231, 193, 255);
     text(184, 668, "ALPHA CHECK   0% / 50% / 100%", 210, 225, 233);

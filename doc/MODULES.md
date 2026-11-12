@@ -9,7 +9,9 @@ VKMS 双 plane 预览，再接实际解码、网络和板端硬件；不提前�
 | --- | --- |
 | `zenith_core` | 客户端状态、连接状态、命令、遥测与状态转换；不依赖 MQTT/protobuf、MPP、VAAPI、DRM 设备。 |
 | `zenith_backend` | 封装 BUAA API，转换内部模型，适配连接与回调；协议类型不进入 core。完整压缩 Access Unit 直接交给 video，core 只接状态与统计。 |
-| `zenith_video` | 压缩输入、解码接口、帧描述与资源生命周期；没有具体解码实现。首版可为 INTERFACE 库。 |
+| `zenith_video` | 压缩输入、解码接口、帧描述与资源生命周期；没有具体解码实现。当前为包含 NV12 拷贝和 HEVC 随机访问识别的静态库。 |
+| `zenith_video_file` | 桌面 HEVC MP4 → Annex-B AU，保留并重基循环时间戳；通过 FFmpeg libavformat 实现。 |
+| `zenith_video_replay` | 开发用 UDP 回放工具，按 PTS 发送已编码素材，不进入板端正式客户端。 |
 | `zenith_decoder_mpp` | MPP 实现，封装 MppFrame 与解码器资源。 |
 | `zenith_decoder_vaapi` | 桌面 VAAPI 实现，优先复用 FFmpeg 硬解；AVFrame/VASurfaceID 不进入公共接口。 |
 | `zenith_display_drm` | 设备与能力探测、路由、buffer/FB 管理、atomic 提交与同步、可选 writeback；VKMS 与 Rockchip 共用实现。 |
@@ -24,7 +26,7 @@ VKMS 双 plane 预览，再接实际解码、网络和板端硬件；不提前�
 探测库不依赖 SDL、BUAA 或解码器。UI 与 display 间通过绘制目标传递内存，
 由 display 管理可扫描输出缓冲，UI 包装像素地址与 pitch 进行绘制。
 
-## 帧契约
+## 目标帧契约与当前落地
 
 - 压缩输入明确 Access Unit 边界、编码类型、时间戳；接口定义提交、取帧、排空、重置。
 - 解码帧包含尺寸、裁剪、色彩信息、DMA-BUF 对象列表、各图像 plane 的
@@ -35,14 +37,18 @@ VKMS 双 plane 预览，再接实际解码、网络和板端硬件；不提前�
 - AMD VAAPI 到 VKMS 的导入与 modifier 兼容性单独验证。必要时显式转换到
   桌面线性缓冲，最终仍由 VKMS 合成，不将该路径性能作为板端零拷贝性能。
 
+当前落地的解码帧为**拥有内存的 CPU NV12**，含色彩和 PTS；DMA-BUF、裁剪、modifier
+与显式 fence 描述尚未落地。显示自有缓冲保持原扫描/写回生命周期，详见 [视频调试](VIDEO_PLAYBACK.md)。
+
 ## 配置方向
 
-按实际实现逐步增加 `ZT_DECODER=none|vaapi|mpp`、`ZT_ENABLE_DRM`、
-`ZT_ENABLE_PREVIEW` 和标准 `BUILD_TESTING`。明确选择后端但缺少依赖时直接报错，
-不静默换后端。已实现 `ZT_ENABLE_DRM` 与 `ZT_ENABLE_PREVIEW`；`ZT_DECODER` 待解码阶段引入。
+已实现 `ZT_VIDEO_BACKEND=none|vaapi`、`ZT_ENABLE_DRM`、`ZT_ENABLE_PREVIEW`
+和标准 `BUILD_TESTING`；没有另设 `ZT_DECODER` 别名。明确选择后端但缺少依赖时直接报错，
+不静默换后端。`ZT_ENABLE_VIDEO_TRANSPORT` 可独立开启无 FFmpeg 的 UDP 适配，
+VAAPI 模式自动构建它；MPP 完成后再增加实际后端选项。
 
-本机阶段启用 DRM 与 preview，先不启用解码；之后选择 VAAPI。
-板端选择 MPP 与 DRM、不构建 preview。本机 SDL 预览需要窗口后端，板端不需要；
+本机视频调试启用 DRM、preview 和 VAAPI；原 smoke 默认不启用视频。
+当前板端使用 none + DRM、不构建 preview；MPP 尚未实现。本机 SDL 预览需要窗口后端，板端不需要；
 两端都不让 SDL KMSDRM 争抢控制权。
 
 ## 推进顺序与验收
@@ -55,10 +61,13 @@ VKMS 双 plane 预览，再接实际解码、网络和板端硬件；不提前�
    验收混合、持续换帧、缓冲回收与退出。只加入最小 core 状态。
 3. **本地视频**：实现 video 契约与 VAAPI 后端，用本地 HEVC 文件替换测试图；
    验证导出、导入、modifier、同步及必要的显式转换路径。
-4. **业务和实机**：fork/拆分 BUAA，接 MQTT/UDP、业务 UI、必需输入和断线恢复；
+4. **业务和实机**：在 BUAA fork 中拆分依赖，接 MQTT/UDP、业务 UI、必需输入和断线恢复；
    板到货后接 MPP 与 Rockchip DRM，并做硬件运行和性能验收。
 
 现有双平台 smoke 始终保留。无设备测试默认可运行；硬件测试不自动占用真实显示器。
 探测操作与实际 modeset 分开，probe 不提供未经实现的提交选项。
 
-当前第 1、2 步已完成本机正确性验证并通过交叉构建；实现与限制见 [VKMS 预览](VKMS_PREVIEW.md)。
+当前第 1、2 步和第 3 步的显式 CPU staging 路径已完成验证；第 4 步已先接 UDP
+录制素材回放，并完成 BUAA fork 切换与原编解码器的 FFmpeg 新旧版本兼容修复。
+直接 DMA-BUF、业务 MQTT 与 MPP 尚未完成。实现与证据见
+[视频调试](VIDEO_PLAYBACK.md) 和 [VKMS 预览](VKMS_PREVIEW.md)。

@@ -1,8 +1,10 @@
 # 定位 NV12 双 plane 预览的耗时
 
 保持真实 NV12 视频 plane + SDL ARGB UI plane，由 VKMS 合成后 writeback。
-当前 1920×1080 实际窗口预览平均 **59.44 FPS**；3600 个测量帧中仍有 44 帧超过
-25 ms，严格“稳 60 FPS”目标尚未通过。全部逐帧 alpha 校验通过，固定帧与原模块一致。
+当前 1920×1080 实际窗口预览，使用可选的 VKMS 高性能核组设置后，全程约
+**59.96 FPS**；7200 个测量帧中 4 帧超过 25 ms，p99 为 18.329 ms。
+严格稳 60 尚未通过。全部逐帧 alpha 校验通过，固定帧与原模块一致。
+[最新核组 A/B、反向对照与设置方式](VKMS_LONG_FRAMES.md#核组-ab只改-vkms-队列的-cpumask)。
 
 补丁源码、构建与恢复见 [VKMS 补丁说明](../patches/linux-vkms/README.md)。
 仓库仅维护一个累计 patch，直接应用到原始基线。
@@ -15,9 +17,9 @@ PDF 第 47 页第 2 节规定：自定义终端从 UDP 3334 接收 **1920×1080�
 HEVC/H.265** 视频，无重传机制。因此正式接入按这个规格，而不是原示例的 720p。
 本轮是生成 NV12 测试图的显示性能；HEVC 解码与网络接收还未接入。
 
-## 1080p 结果与剩余差距：2026-11-12
+## 1080p 算法优化阶段：2026-11-12（核组约束之前）
 
-最终模块：`build/perf/vkms-1080-publish/vkms.ko`，srcversion
+该阶段最终模块：`build/perf/vkms-1080-publish/vkms.ko`，srcversion
 `C8345625018A850F283555A`。AMD Ryzen AI 9 HX 470 / CachyOS `7.3.3-1-cachyos`，
 SDL Wayland + OpenGL 只上传已合成的 writeback；UI 本身仍由 SDL 软件绘制。
 没有降低分辨率、停掉 CRC reader 功能、预先合成两个源图或丢弃帧。
@@ -72,10 +74,14 @@ writeback fence。只有一份在途 writeback；原同步 `present()` 仍可用
 最后的 `WQ_HIGHPRI` 只提高 VKMS 有序工作线程的普通调度优先级；没有实时策略、
 CPU 绑定或宿主机全局调度配置改动。该次对照减轻长帧，但不能据此承诺其他机器稳 60。
 
-**当前仍缺严格 60 FPS 的尾延迟验收。** 已消除平均吞吐的主要瓶颈，但长帧时的
-`commit_ms` 与 `writeback_ms` 仍会同时增长。接下来的关键是捕获长帧的工作队列排队、
-vblank 唤醒和实际合成时间，区分调度延迟与计算尖峰，再决定是否继续改 VKMS。
-目前不据此承诺 RK 实机端到端 60 FPS；实机还需验证 MPP 解码和 VOP2 扫描路径。
+**当前仍缺严格 60 FPS 的尾延迟验收。** 后续事件跟踪已分开排队与执行：
+长帧中的队列等待平均约 0.042 ms，扣除调度离 CPU 与已记录中断后的执行平均
+14.76 ms。59 个长帧均与当帧或前帧经过较低最高频率核组相邻。
+后续已完成仅影响 VKMS 的执行核组 A/B 与反向对照，显著减少长帧；
+当前应继续压低实际合成的尾延迟，而不是继续提高工作队列优先级。
+[计时方法、核迁移证据及无跟踪对照](VKMS_LONG_FRAMES.md)。
+
+实机还需验证 MPP 解码和 VOP2 扫描路径。
 
 ### 可靠性、像素与双平台验证
 
@@ -143,6 +149,8 @@ CSV 列含义：
 - `verify_ms`：逐帧三个 alpha 样本；`capture_ms`：可选 BMP 保存。
 - `preview_ms`：窗口上传/呈现；`work_ms`：完整循环起点到预览完成。
 - `pacing_ms`：末尾日志和限速等待；`total_ms`：完整循环时间。
+- `begin_mono_ns` / `fence_mono_ns` / `end_mono_ns`：追加的单调时钟纳秒时间戳，
+  用于与内核事件关联；无 writeback 时中间值仅表示 present/finish 返回。
 
 汇总 FPS = 1000 / 平均 `total_ms`，不把每帧 FPS 算术平均。
 `total_ms` 保留原定义：循环起点到计时结束，不含随后 CSV 格式化/写出及循环之间的开销。

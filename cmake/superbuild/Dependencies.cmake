@@ -83,6 +83,8 @@ ExternalProject_Add(zenith-app
     DOWNLOAD_COMMAND "" UPDATE_COMMAND ""
     CMAKE_ARGS ${_target} -DZT_SUPERBUILD:BOOL=OFF -DZT_PLATFORM:STRING=${ZT_PLATFORM}
         -DZT_ENABLE_DRM:BOOL=${ZT_ENABLE_DRM} -DZT_ENABLE_PREVIEW:BOOL=${ZT_ENABLE_PREVIEW}
+        -DZT_VIDEO_BACKEND:STRING=${ZT_VIDEO_BACKEND}
+        -DZT_ENABLE_VIDEO_TRANSPORT:BOOL=${ZT_ENABLE_VIDEO_TRANSPORT}
         -DBUILD_TESTING:BOOL=${BUILD_TESTING}
         -DZT_HOST_PROTOC:FILEPATH=${ZT_HOST_PREFIX}/bin/protoc
         -DZT_OUTPUT_DIR:PATH=${CMAKE_BINARY_DIR}/bin
@@ -104,4 +106,11 @@ if(ZT_ENABLE_DRM)
             --test-dir "${CMAKE_BINARY_DIR}/app" --output-on-failure -R "^drm-" --no-tests=error)
         set_tests_properties(drm-tests PROPERTIES TIMEOUT 30 LABELS unit)
     endif()
+endif()
+
+if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING AND
+   (ZT_ENABLE_VIDEO_TRANSPORT OR ZT_VIDEO_BACKEND STREQUAL "vaapi"))
+    add_test(NAME video-tests COMMAND ${CMAKE_CTEST_COMMAND}
+        --test-dir "${CMAKE_BINARY_DIR}/app" --output-on-failure -R "^video-" --no-tests=error)
+    set_tests_properties(video-tests PROPERTIES LABELS unit TIMEOUT 30)
 endif()

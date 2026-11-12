@@ -4,9 +4,11 @@
 直接应用到未修改的基线源码，不需要叠加旧版本。
 
 当前 **1920×1080** NV12 + SDL ARGB 双 plane / writeback / Wayland OpenGL
-窗口预览，3600 个测量帧平均 **59.44 FPS**，p95 **17.792 ms**、p99 **25.638 ms**。
-其中 44 帧超过 25 ms，最长 35.236 ms；严格“稳 60 FPS”目标尚未通过。
-固定帧全部 2,073,600 个 RGB 像素与系统原模块一致。
+窗口预览，在本机为 VKMS 队列选择较高性能核组后，7200 个测量帧的循环均值折算
+**60.04 FPS**，全程 **59.96 FPS**，p99 **18.329 ms**。
+仍有 4 帧超过 25 ms，最长 31.361 ms；严格稳 60 尚未通过。
+默认不限制 CPU；设置方式和对照结果见下文。固定帧全部 2,073,600 个 RGB 像素
+与系统原模块一致。
 
 应用使用 `--size 1920x1080 --pipeline --uncapped`；
 [完整性能记录](../../doc/VKMS_PERFORMANCE.md) 包含对照、原始 CSV 和剩余问题。
@@ -48,8 +50,11 @@
    参考 atipre 的[邮件列表提案](https://go.mail-archive.com/dri-devel@lists.freedesktop.org/msg646844.html)，
    在本地基线上适配。无待写回 job、也无 CRC reader 的冗余 tick 不重复合成。
 8. **显示工作的普通调度优先级**：有序 composer workqueue 加 `WQ_HIGHPRI`，
-   仍是 Linux 普通调度，不使用实时调度、CPU 绑定或关闭系统安全机制。
-   同机 3600 帧对照中 >25 ms 长帧从 53 降至 33；这是本轮观察，尚无跨机器保证。
+   仍是 Linux 普通调度，不使用实时调度或关闭系统安全机制。
+   早期同机 3600 帧对照中 >25 ms 长帧从 53 降至 33。
+9. **可选队列核组设置**：增加 `WQ_SYSFS`，名称 `vkms-cardN-crtcM` 避免设备/CRTC 重名。
+   默认 CPU 选择不变；只通过该队列的 `cpumask` 选择执行范围，不改共享 worker 线程或全局配置。
+   本机 A/B 将 >25 ms 长帧从 48/3600 降至 3/3600；具体 CPU 编号不跨机器通用。
 
 保留 60 Hz vblank、完整颜色精度、真实两个 plane、writeback fence 和 CRC reader 功能。
 应用不提前合成视频与 UI，OpenGL 只负责显示已完成的 writeback 图像。
@@ -103,9 +108,41 @@ python3 tools/vkms/tests/check-publication.py build/perf/vkms-candidate
 
 ## 当前构建产物
 
-本次通过运行验证的模块是 `build/perf/vkms-1080-publish/vkms.ko`，srcversion 为
-`C8345625018A850F283555A`。`vkms-fast`、`vkms-60fps` 等旧目录是历史产物，后续使用
-当前模块或从本补丁重新构建。应用本机/RK3566 构建不自动安装内核模块。
+本次通过运行验证的模块是 `build/perf/vkms-affinity-final/vkms.ko`，srcversion 为
+`697819EF5DB92190CC74579`。`vkms-1080-publish` 和 `vkms-affinity-sysfs` 等目录是
+历史/对照产物；后续使用当前模块或从本补丁重建。应用本机/RK3566 构建不自动安装模块。
+
+## 可选：只为 VKMS 选择执行核组
+
+先按下一节临时加载模块并让桌面释放对应虚拟卡。停止客户端后再调整，避免将
+切换前后的帧混进同一次测量。根据 probe 结果选正确队列；本次 card0 的 CRTC 索引为 0：
+
+```bash
+ls -d /sys/bus/workqueue/devices/vkms-*
+Q=/sys/bus/workqueue/devices/vkms-card0-crtc0
+old_mask=$(cat "$Q/cpumask")
+lscpu -e=CPU,CORE,MAXMHZ
+cat /sys/devices/system/cpu/online
+cat /sys/devices/virtual/workqueue/cpumask   # 只读，不修改全局设置
+# 仅本机：逻辑 CPU 0–3、12–15 对应十六进制 f00f。
+printf '%s\n' f00f | sudo tee "$Q/cpumask"
+cat "$Q/cpumask" "$Q/nice" "$Q/max_active"  # 本机：00f00f、-20、1
+```
+
+保留其他属性不变。设置是 CPU 位掩码，不是 CPU 列表；换机器要重新选择，不能照搬
+`f00f`。这个标准 workqueue 接口不依赖 CPU/GPU 厂商，但未实测 Intel 或 ARM64 模块。
+目标 mask 要与 online CPU 和全局 unbound mask 有交集；本机二者覆盖全部 24 个逻辑 CPU。
+全局 mask 无交集、CPU 下线等情形可能触发内核回退，因此性能验证需检查实际核路径，
+不能仅凭设置文件的读回认定执行位置。[对照和跟踪方法](../../doc/VKMS_LONG_FRAMES.md)。
+
+客户端退出后，恢复此前范围：
+
+```bash
+printf '%s\n' "$old_mask" | sudo tee "$Q/cpumask"
+```
+
+卸载临时模块也会删除这些队列设置；没有新增 modprobe 配置、服务或 DKMS。
+普通使用仍可完全不设置 mask，默认行为与此前相同。
 
 ## 临时加载与恢复（在终端执行）
 

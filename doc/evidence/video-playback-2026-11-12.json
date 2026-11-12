@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-12",
+  "buaa_pin": "d9f72e5db23d8e6be5f3ef6986c3c283ca8927bb",
+  "ffmpeg": "9.0.2",
+  "kernel": "7.3.3-1-cachyos",
+  "vkms_module_srcversion": "697819EF5DB92190CC74579",
+  "composer_cpumask": "00f00f",
+  "path": "HEVC -> VAAPI surface -> explicit CPU NV12 staging -> real NV12 + SDL ARGB planes -> VKMS XR24 writeback -> Wayland/OpenGL preview",
+  "file_loop": {
+    "render_submissions": 1320,
+    "elapsed_s": 22.06,
+    "render_fps": 59.84,
+    "decoded": 1328,
+    "file_loops": 1,
+    "unique_presented": null,
+    "note": "Long run predates the reporting-only unique_presented counter.",
+    "profile": {
+      "local_path": "build/test-media/video-loop.csv",
+      "measured_frames": 1310,
+      "mean_ms": 16.674780741221372,
+      "p95_ms": 17.578388,
+      "p99_ms": 18.579747,
+      "max_ms": 31.053641,
+      "over_25_ms": 4
+    }
+  },
+  "udp_two_loops": {
+    "sent_aus": 2400,
+    "sent_bytes": 39651024,
+    "received_complete": 2400,
+    "decoded": 2400,
+    "gaps": 0,
+    "invalid": 0,
+    "expired": 0,
+    "render_submissions": 2425,
+    "elapsed_s": 40.46,
+    "render_fps": 59.93,
+    "unique_presented": 2394,
+    "profile": {
+      "local_path": "build/test-media/udp-preview.csv",
+      "measured_frames": 2415,
+      "mean_ms": 16.652256510144927,
+      "p95_ms": 17.701497,
+      "p99_ms": 18.777755,
+      "max_ms": 24.812245,
+      "over_25_ms": 0
+    }
+  },
+  "checks": [
+    "1201 VAAPI frames crossing file loop, owned first frame unchanged, black Y=16 UV=128, BT709 limited, drain/reset",
+    "28 color/alpha samples per writeback",
+    "Original generated frame 3 BMP exact match",
+    "DRM lifecycle regression",
+    "File EOF and final capture, SIGINT cleanup",
+    "Native CTest; minimal old smoke without video dependencies",
+    "RK3566 build, ELF/SDK 27 version checks; QEMU self-check and new video/UDP unit tests"
+  ],
+  "restored": {
+    "system_vkms": "6A20A3C0EC14F8CECBF18F8",
+    "display_layout": true
+  }
+}

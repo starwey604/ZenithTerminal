@@ -19,6 +19,8 @@ The composer reference operations adapt atipre's
 https://go.mail-archive.com/dri-devel@lists.freedesktop.org/msg646844.html
 Skip ticks with neither pending writeback nor an active CRC reader. Keep the
 ordered composer workqueue, using WQ_HIGHPRI for ordinary scheduling priority.
+Expose the composer queue through WQ_SYSFS for optional per-queue CPU
+placement experiments. Default CPU selection stays unchanged.
 Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
 
 --- a/drivers/gpu/drm/vkms/vkms_drv.c
@@ -548,7 +550,15 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
  /* Writeback */
 --- a/drivers/gpu/drm/vkms/vkms_crtc.c
 +++ b/drivers/gpu/drm/vkms/vkms_crtc.c
-@@ -17,7 +17,7 @@
+@@ -6,6 +6,7 @@
+ #include <drm/drm_atomic_helper.h>
+ #include <drm/drm_blend.h>
+ #include <drm/drm_managed.h>
++#include <drm/drm_file.h>
+ #include <drm/drm_print.h>
+ #include <drm/drm_probe_helper.h>
+ #include <drm/drm_vblank.h>
+@@ -17,7 +18,7 @@
  {
  	struct vkms_output *output = drm_crtc_to_vkms_output(crtc);
  	struct vkms_crtc_state *state;
@@ -557,7 +567,7 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
  
  	fence_cookie = dma_fence_begin_signalling();
  
-@@ -27,9 +27,10 @@
+@@ -27,9 +28,10 @@
  		DRM_ERROR("vkms failure on handling vblank");
  
  	state = output->composer_state;
@@ -569,12 +579,15 @@ Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
  		u64 frame = drm_crtc_accurate_vblank_count(crtc);
  
  		/* update frame_start only if a queued vkms_composer_worker()
-@@ -233,7 +234,7 @@
+@@ -233,7 +235,10 @@
  	spin_lock_init(&vkms_out->lock);
  	spin_lock_init(&vkms_out->composer_lock);
  
 -	vkms_out->composer_workq = drmm_alloc_ordered_workqueue(dev, "vkms_composer", 0);
-+	vkms_out->composer_workq = drmm_alloc_ordered_workqueue(dev, "vkms_composer", WQ_HIGHPRI);
++	/* Sysfs queue names must distinguish both devices and CRTCs. */
++	vkms_out->composer_workq = drmm_alloc_ordered_workqueue(dev,
++		"vkms-card%d-crtc%u", WQ_HIGHPRI | WQ_SYSFS,
++		dev->primary->index, drm_crtc_index(crtc));
  	if (IS_ERR(vkms_out->composer_workq))
  		return ERR_CAST(vkms_out->composer_workq);
  

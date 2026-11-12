@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <zenith/video.hpp>
 
 namespace zenith::display {
 struct MappedImage {
@@ -15,6 +16,8 @@ struct DisplayOptions {
     VideoFormat video_format{VideoFormat::nv12};
     bool writeback{true};
     bool full_state_each_frame{true};
+    video::Color color{}; // Existing generated source stays BT.601 full range.
+    bool require_color_properties{false};
 };
 struct FrameTargets { unsigned slot{}; MappedImage video, ui_argb; };
 struct PresentTiming { double request_ms{}, commit_ms{}, writeback_ms{}; };

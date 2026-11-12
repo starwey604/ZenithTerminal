@@ -2,7 +2,7 @@
 
 面向 Radxa ZERO 3E 的 RoboMaster 2027 自定义终端。
 当前支持本机/RK3566 双平台构建、DRM 能力探测，以及本机 VKMS 双 plane
-合成与 writeback 桌面预览。原有线程、protobuf、SDL3、Paho smoke 继续保留。
+合成与 writeback 桌面预览，以及 HEVC 文件/UDP 回放和 VAAPI 硬解。原有线程、protobuf、SDL3、Paho smoke 继续保留。
 
 ```bash
 git submodule update --init --recursive
@@ -46,3 +46,20 @@ RM2027 的 1080p 调试使用 `--size 1920x1080 --pipeline --uncapped`；
 需要先临时加载下面记录的累计 VKMS 补丁。
 
 [分段计时、对照实验与 VKMS 优化补丁](doc/VKMS_PERFORMANCE.md)。
+
+## 用录制视频调 UI
+
+素材位于 `assets/video/`，用 Git LFS 管理。先取得素材并开启本机视频后端：
+
+```bash
+git lfs pull --include='assets/video/*'
+cmake --preset native -DZT_ENABLE_DRM=ON -DZT_ENABLE_PREVIEW=ON -DZT_VIDEO_BACKEND=vaapi
+cmake --build --preset native
+# 临时加载优化模块并释放 VKMS 后：
+./build/native/bin/ZenithTerminal --drm-demo \
+  --video-file assets/video/demo-1080p60.mp4 --video-loop --pipeline --take-over --frames 0
+```
+
+[文件播放、BUAA UDP 回放、交叉构建和验证记录](doc/VIDEO_PLAYBACK.md)。
+当前桌面路径明确下载 VAAPI surface 到 CPU NV12，并继续使用真实双 plane；
+DMA-BUF 零拷贝和板端 MPP 尚未实现。

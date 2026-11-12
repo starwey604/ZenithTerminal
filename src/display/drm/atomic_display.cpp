@@ -188,8 +188,16 @@ struct AtomicDisplay::Impl {
                 }
             }
             set_plane(r, video, *slot.video); set_plane(r, ui, *slot.ui);
-            r.enumeration(video.id, video.properties, "COLOR_ENCODING", "ITU-R BT.601 YCbCr");
-            r.enumeration(video.id, video.properties, "COLOR_RANGE", "YCbCr full range");
+            if (options.video_format == VideoFormat::nv12) {
+                if (options.require_color_properties)
+                    require(prop(video.properties, "COLOR_ENCODING") && prop(video.properties, "COLOR_RANGE"),
+                            "decoded video requires explicit DRM color encoding/range properties");
+                const char* matrix = options.color.matrix == video::Matrix::bt709 ? "ITU-R BT.709 YCbCr" :
+                    options.color.matrix == video::Matrix::bt2020 ? "ITU-R BT.2020 YCbCr" : "ITU-R BT.601 YCbCr";
+                r.enumeration(video.id, video.properties, "COLOR_ENCODING", matrix);
+                r.enumeration(video.id, video.properties, "COLOR_RANGE",
+                    options.color.range == video::Range::full ? "YCbCr full range" : "YCbCr limited range");
+            }
             r.enumeration(ui.id, ui.properties, "pixel blend mode", "Pre-multiplied");
             r.optional(ui.id, ui.properties, "alpha", 65535);
             // Set exposed mutable zpos; fixed order without properties is verified by writeback samples.
