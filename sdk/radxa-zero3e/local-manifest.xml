@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <remote name="radxa" fetch="https://github.com/radxa/" />
+
+  <remove-project name="linux/device/rockchip" />
+  <project name="device-rockchip" path="device/rockchip" remote="radxa"
+           revision="d064c6c075f3b93ef41ed999993fd8d01eed9cfa"
+           upstream="refs/heads/rk3566_rk3568-linux-6.1" clone-depth="1">
+    <linkfile src="common/scripts/build.sh" dest="build.sh" />
+    <linkfile src="common/Makefile" dest="Makefile" />
+    <linkfile src="common/scripts/rkflash.sh" dest="rkflash.sh" />
+  </project>
+
+  <remove-project name="rk/kernel-stable" />
+  <project name="kernel" path="kernel-6.1" remote="radxa"
+           revision="af558fa36b0a7fcd293ec7a8e8912b7fc8c25aef"
+           upstream="refs/heads/linux-6.1-stan-rkr4.1-buildroot" clone-depth="1">
+    <linkfile src="." dest="kernel" />
+  </project>
+</manifest>

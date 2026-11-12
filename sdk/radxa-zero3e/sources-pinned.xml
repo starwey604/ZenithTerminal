@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <remote name="radxa" fetch="https://github.com/radxa/"/>
+  <remote name="rk" fetch="../../"/>
+
+  <default remote="rk" sync-j="4"/>
+
+  <project name="android/rk/platform/system/rk_tee_user" path="external/security/rk_tee_user" revision="e44fe6a36ab753647d618fa8ff614dd4bc74d8a4" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="android/rk/u-boot" path="u-boot" revision="840f624d1d6838fce87bd772128b08e649c7b152" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="device-rockchip" path="device/rockchip" remote="radxa" revision="d064c6c075f3b93ef41ed999993fd8d01eed9cfa" upstream="refs/heads/rk3566_rk3568-linux-6.1" groups="local::radxa-zero3e" clone-depth="1">
+    <linkfile src="common/scripts/build.sh" dest="build.sh"/>
+    <linkfile src="common/Makefile" dest="Makefile"/>
+    <linkfile src="common/scripts/rkflash.sh" dest="rkflash.sh"/>
+  </project>
+  <project name="kernel" path="kernel-6.1" remote="radxa" revision="af558fa36b0a7fcd293ec7a8e8912b7fc8c25aef" upstream="refs/heads/linux-6.1-stan-rkr4.1-buildroot" groups="local::radxa-zero3e" clone-depth="1">
+    <linkfile src="." dest="kernel"/>
+  </project>
+  <project name="linux/app/lvgl_demo" path="app/lvgl_demo" revision="b4d68eb7e47712779a4db89fdf04f171114f0812" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/app/rkpartybox" path="app/rkpartybox" revision="cd35a37a1196b5a3efc6d33a375b0a2f3f5806bd" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/bsp/docs" path="docs" revision="66811c65346c9d2ac5297cf455c5dda47d441b59" upstream="refs/tags/linux-6.1-stan-rkr4.1" dest-branch="refs/tags/linux-6.1-stan-rkr4.1" clone-depth="1">
+    <linkfile src="licenses/LICENSE" dest="Copyright_Statement.md"/>
+  </project>
+  <project name="linux/bsp/docs" path="docs/cn" revision="032ce8c7696768d76a104514bb6b6c9696216fbf" upstream="refs/tags/linux-6.1-stan-rkr4.1-cn" dest-branch="refs/tags/linux-6.1-stan-rkr4.1-cn" clone-depth="1">
+    <linkfile src="Rockchip_Developer_Guide_Linux_Software_CN.pdf" dest="docs/cn/RK3566_RK3568/Rockchip_Developer_Guide_Linux_Software_CN.pdf"/>
+  </project>
+  <project name="linux/bsp/docs" path="docs/en" revision="0360c2fa849cbd3292f65f74fb6264eb1dab81b5" upstream="refs/tags/linux-6.1-stan-rkr4.1-en" dest-branch="refs/tags/linux-6.1-stan-rkr4.1-en" clone-depth="1">
+    <linkfile src="Rockchip_Developer_Guide_Linux_Software_EN.pdf" dest="docs/en/RK3566_RK3568/Rockchip_Developer_Guide_Linux_Software_EN.pdf"/>
+  </project>
+  <project name="linux/bsp/internal_doc" path="docs/cn/RK3566_RK3568" revision="632d80057eada3aaf34b3784d7ed2377a859c923" upstream="rk3566_rk3568-cn" dest-branch="rk3566_rk3568-cn"/>
+  <project name="linux/bsp/internal_doc" path="docs/en/RK3566_RK3568" revision="3b58c27c6a878caec37034359bf05ece774a1250" upstream="rk3566_rk3568-en" dest-branch="rk3566_rk3568-en"/>
+  <project name="linux/bsp/rkadk" path="app/rkadk" revision="ecc7fe31e55b35be94216a9d524e690e54eb92fc" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/build" path="yocto/build/conf" revision="528240521a82926e3734cfe1e1a8b02535f3ebd8" upstream="refs/tags/build-linux-6.1-stan-rkr4" dest-branch="refs/tags/build-linux-6.1-stan-rkr4"/>
+  <project name="linux/buildroot" path="buildroot" revision="6982a513fe9405d133d62528061a99b386d68c53" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4">
+    <linkfile src="build/envsetup.sh" dest="envsetup.sh"/>
+  </project>
+  <project name="linux/debian" path="debian" revision="66b973eb6be5497de82ef0a469836197ee36e117" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4" clone-depth="1"/>
+  <project name="linux/drm-cursor" path="external/drm-cursor" revision="23cebd5dd33a3073f296533954d4c211481891ab" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/alsa-config" path="external/alsa-config" revision="562c8afc87542d871788e9232efc95d62ca6844a" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/camera_engine_rkaiq" path="external/camera_engine_rkaiq" revision="079f60b8c02b24c281ee6e9403b93a1fa389d43e" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4" clone-depth="1"/>
+  <project name="linux/external/chromium" path="external/chromium" revision="e011b26200c4e4e059463a84c533bf5a42217c36" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4" clone-depth="1"/>
+  <project name="linux/external/common_algorithm" path="external/common_algorithm" revision="a3c4b652f7a160296151c218246fecdad9351f03" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/dpdk" path="external/dpdk" revision="b9f881cb80adab8e0638b057abe7abf0196515e4" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/rk_ethercat_release" path="external/rk_ethercat_release" revision="edab8646b93da59931e5b159fcd496b4e574e07a" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/rk_pcba_test" path="external/rk_pcba_test" revision="9ca36b2bf70f2f164b1891f1ac1ce2bf8eb9325c" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/rkscript" path="external/rkscript" revision="2afce8db3b1a3cd9097800dbaefa56ff2a7dfe97" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/rktoolkit" path="external/rktoolkit" revision="bc1d85d6d2a39c67ed2d619f6faf1a996d542722" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/rkupdate" path="external/rkupdate" revision="e9cd4fe07733f807057fd7a6bd5e8d42a59624a7" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/rkwifibt" path="external/rkwifibt" revision="4b5e79bca8a9e32fef4eebd5f2bfaeeba27fa74e" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/rkwifibt-app" path="external/rkwifibt-app" revision="d83caea361afea2f2c0b06c65abe128d25f4dacf" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/rockit_uvc" path="external/rockit_uvc" revision="250289ba0e2e752d2dbf93c884911a774cb60784" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/uac_app" path="external/uac_app" revision="434c2d15193589fd9960eb910c76333ab3446675" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/external/uvc_app" path="external/uvc_app" revision="2974d251b0df0f28fdbfe1c9c8a319aa03833320" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/gstreamer-rockchip" path="external/gstreamer-rockchip" revision="c37e7cf10283521c262f9e71fd9be0422a457989" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/libmali" path="external/libmali" revision="41ac372c44a6b22a64df46da567b6e0bdf000ef9" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4" clone-depth="1"/>
+  <project name="linux/linux-rga" path="external/linux-rga" revision="fc3f742a7be43c62c9eb3e17a007f957b0e7db83" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/poky" path="yocto/meta-browser" revision="83cb90c618e24af9bc40fb25baab2a0acd47a560" upstream="refs/tags/meta-browser-linux-6.1-stan-rkr4" dest-branch="refs/tags/meta-browser-linux-6.1-stan-rkr4"/>
+  <project name="linux/poky" path="yocto/meta-clang" revision="52c61cd5d447f871a1666e64fcfdf5f27a47f44c" upstream="refs/tags/meta-clang-linux-6.1-stan-rkr4" dest-branch="refs/tags/meta-clang-linux-6.1-stan-rkr4"/>
+  <project name="linux/poky" path="yocto/meta-openembedded" revision="2338409efc51cf2022ff5610a9fb689251706e2b" upstream="refs/tags/meta-openembedded-linux-6.1-stan-rkr4" dest-branch="refs/tags/meta-openembedded-linux-6.1-stan-rkr4"/>
+  <project name="linux/poky" path="yocto/poky" revision="0b37512fb4b231cc106768e2a7328431009b3b70" upstream="refs/tags/poky-linux-6.1-stan-rkr4" dest-branch="refs/tags/poky-linux-6.1-stan-rkr4">
+    <linkfile src="scripts" dest="yocto/scripts"/>
+    <linkfile src="bitbake" dest="yocto/bitbake"/>
+    <linkfile src="meta-poky" dest="yocto/meta-poky"/>
+    <linkfile src=".templateconf" dest="yocto/.templateconf"/>
+    <linkfile src="oe-init-build-env" dest="yocto/oe-init-build-env"/>
+  </project>
+  <project name="linux/recovery" path="external/recovery" revision="dde564ddd12376a8674b3974216cdf37166da5ed" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/rockchip-test" path="external/rockchip-test" revision="4cc483a7b81b3733ecff9b050ea8cebc897abbad" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/rockit" path="external/rockit" revision="8f47d709a4d6a13a102fbec8c4cd522c4d7695f6" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/security/bin" path="external/security/bin" revision="571931961bf5da009414dfa0807b3410c0d3d8e1" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/tools" path="tools" revision="927ff5bfa0eedc93e5fd9f0d35e87270a8faee89" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4" clone-depth="1"/>
+  <project name="linux/xserver" path="external/xserver" revision="fad645a0ca0f438b62dc3a332b34388bf9fd9fd0" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="linux/yocto/meta-rockchip" path="yocto/meta-rockchip" revision="fb6193a5f5cf80070cf8182c06cb5621433111aa" upstream="refs/tags/meta-rockchip-linux-6.1-stan-rkr4" dest-branch="refs/tags/meta-rockchip-linux-6.1-stan-rkr4"/>
+  <project name="rk/librkcrypto" path="external/security/librkcrypto" revision="62795797b3aa3b3e9a6c32672a0c4d3d0f44c78a" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="rk/mpp" path="external/mpp" revision="eff1e2ede31817c7d6fbe9c62421ab4955f962b7" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="rk/prebuilts/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu" path="prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu" revision="adbb295a970c4b39dc487c95226fe84d2c460072" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="rk/prebuilts/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf" path="prebuilts/gcc/linux-x86/arm/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf" revision="2e89382ca3f8c34086272509ae4d7a5c340ffafc" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4"/>
+  <project name="rk/rkbin" path="rkbin" revision="12660714c81be85350a4092542e2ff599aa5adcb" upstream="refs/tags/linux-6.1-stan-rkr4.1" dest-branch="refs/tags/linux-6.1-stan-rkr4.1"/>
+  <project name="rk/rknn-toolkit2" path="external/rknn-toolkit2" revision="cfc7b08335250ea3382f67b0bcb0142dd80353cf" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4" clone-depth="1"/>
+  <project name="rk/rknpu2" path="external/rknpu2" revision="7796342367ab70bdd45cb7b8219ec2774a17395f" upstream="refs/tags/linux-6.1-stan-rkr4" dest-branch="refs/tags/linux-6.1-stan-rkr4" clone-depth="1"/>
+</manifest>

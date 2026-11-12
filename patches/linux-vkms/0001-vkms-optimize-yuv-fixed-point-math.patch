@@ -1,0 +1,282 @@
+Subject: [PATCH] drm/vkms: accelerate YUV arithmetic and cache exact NV12 terms
+
+Use portable bit scans for YUV fixed-point multiplication and precompute
+8-bit NV12 channel contributions once before device registration. Keep
+existing scaling, truncation, rounding, matrices and rotated chroma siting.
+Dispatch XRGB8888 writeback once per row instead of indirectly per pixel.
+Copy opaque pixels and skip zero transparent pixels with identical blending
+semantics; retain the original equation for every other alpha/color value.
+Tables occupy 108 KiB across six encoding/range pairs and become read-only
+after module init. Other pixel formats retain their existing readers.
+Baseline: Linux stable v7.3.3. Local experimental patch, not upstreamed.
+
+--- a/drivers/gpu/drm/vkms/vkms_drv.c
++++ b/drivers/gpu/drm/vkms/vkms_drv.c
+@@ -32,6 +32,7 @@
+ #include "vkms_config.h"
+ #include "vkms_configfs.h"
+ #include "vkms_drv.h"
++#include "vkms_formats.h"
+ 
+ #define DRIVER_NAME	"vkms"
+ #define DRIVER_DESC	"Virtual Kernel Mode Setting"
+@@ -225,6 +226,8 @@
+ 	int ret;
+ 	struct vkms_config *config;
+ 
++	vkms_init_nv12_luts();
++
+ 	ret = vkms_configfs_register();
+ 	if (ret)
+ 		return ret;
+--- a/drivers/gpu/drm/vkms/vkms_formats.c
++++ b/drivers/gpu/drm/vkms/vkms_formats.c
+@@ -1,5 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0+
+ 
++#include <linux/bitops.h>
++#include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/minmax.h>
+ 
+@@ -269,6 +271,40 @@
+ 	return out_pixel;
+ }
+ 
++/*
++ * Keep drm_fixp_mul's scaling and truncation, but find the highest
++ * non-sign bit with the architecture's bit-scan primitive.  This avoids
++ * two bit-by-bit searches for every YUV matrix multiplication.
++ */
++static unsigned int vkms_fixp_msbset(s64 value)
++{
++	u64 magnitude = value < 0 ? ~(u64)value : (u64)value;
++	int bits = fls64(magnitude);
++
++	return bits ? bits - 1 : 0;
++}
++
++static s64 vkms_fixp_mul(s64 a, s64 b)
++{
++	unsigned int shift = vkms_fixp_msbset(a) + vkms_fixp_msbset(b);
++	s64 result;
++
++	if (shift > 61) {
++		shift -= 61;
++		a >>= (shift >> 1) + (shift & 1);
++		b >>= shift >> 1;
++	} else {
++		shift = 0;
++	}
++
++	result = a * b;
++	if (shift > DRM_FIXED_POINT)
++		return result << (shift - DRM_FIXED_POINT);
++	if (shift < DRM_FIXED_POINT)
++		return result >> (DRM_FIXED_POINT - shift);
++	return result;
++}
++
+ VISIBLE_IF_KUNIT
+ struct pixel_argb_u16 argb_u16_from_yuv161616(const struct conversion_matrix *matrix,
+ 					      u16 y, u16 channel_1, u16 channel_2)
+@@ -281,15 +317,15 @@
+ 	fp_channel_1 = drm_int2fixp((int)channel_1 - 128 * 257);
+ 	fp_channel_2 = drm_int2fixp((int)channel_2 - 128 * 257);
+ 
+-	fp_r = drm_fixp_mul(matrix->matrix[0][0], fp_y) +
+-	       drm_fixp_mul(matrix->matrix[0][1], fp_channel_1) +
+-	       drm_fixp_mul(matrix->matrix[0][2], fp_channel_2);
+-	fp_g = drm_fixp_mul(matrix->matrix[1][0], fp_y) +
+-	       drm_fixp_mul(matrix->matrix[1][1], fp_channel_1) +
+-	       drm_fixp_mul(matrix->matrix[1][2], fp_channel_2);
+-	fp_b = drm_fixp_mul(matrix->matrix[2][0], fp_y) +
+-	       drm_fixp_mul(matrix->matrix[2][1], fp_channel_1) +
+-	       drm_fixp_mul(matrix->matrix[2][2], fp_channel_2);
++	fp_r = vkms_fixp_mul(matrix->matrix[0][0], fp_y) +
++	       vkms_fixp_mul(matrix->matrix[0][1], fp_channel_1) +
++	       vkms_fixp_mul(matrix->matrix[0][2], fp_channel_2);
++	fp_g = vkms_fixp_mul(matrix->matrix[1][0], fp_y) +
++	       vkms_fixp_mul(matrix->matrix[1][1], fp_channel_1) +
++	       vkms_fixp_mul(matrix->matrix[1][2], fp_channel_2);
++	fp_b = vkms_fixp_mul(matrix->matrix[2][0], fp_y) +
++	       vkms_fixp_mul(matrix->matrix[2][1], fp_channel_1) +
++	       vkms_fixp_mul(matrix->matrix[2][2], fp_channel_2);
+ 
+ 	fp_r = drm_fixp2int_round(fp_r);
+ 	fp_g = drm_fixp2int_round(fp_g);
+@@ -302,6 +338,90 @@
+ 	return argb_u16_from_u16161616(0xffff, r, g, b);
+ }
+ EXPORT_SYMBOL_IF_KUNIT(argb_u16_from_yuv161616);
++
++/* Exact Q32.32 channel contributions, shared by all NV12 planes. */
++struct vkms_nv12_lut {
++	s64 contribution[3][256][3];
++};
++
++static struct vkms_nv12_lut
++nv12_luts[DRM_COLOR_ENCODING_MAX][DRM_COLOR_RANGE_MAX] __ro_after_init;
++
++static void vkms_build_nv12_lut(struct vkms_nv12_lut *lut,
++			       const struct conversion_matrix *matrix)
++{
++	int channel, value, component;
++
++	for (channel = 0; channel < 3; channel++) {
++		int offset = channel ? 128 : matrix->y_offset;
++
++		for (value = 0; value < 256; value++) {
++			s64 input = drm_int2fixp((value - offset) * 257);
++
++			for (component = 0; component < 3; component++)
++				lut->contribution[channel][value][component] =
++					vkms_fixp_mul(matrix->matrix[component][channel], input);
++		}
++	}
++}
++
++struct vkms_nv12_chroma {
++	s64 r, g, b;
++};
++
++/* All six DRM YUV matrices have equal Y coefficients and zero R/U, B/V. */
++static struct vkms_nv12_chroma
++vkms_nv12_chroma(const struct vkms_nv12_lut *lut, u8 u, u8 v)
++{
++	return (struct vkms_nv12_chroma) {
++		.r = lut->contribution[2][v][0],
++		.g = lut->contribution[1][u][1] + lut->contribution[2][v][1],
++		.b = lut->contribution[1][u][2],
++	};
++}
++
++static struct pixel_argb_u16
++argb_u16_from_nv12_lut(const struct vkms_nv12_lut *lut, u8 y,
++			 struct vkms_nv12_chroma chroma)
++{
++	s64 cy = lut->contribution[0][y][0];
++	s64 r = drm_fixp2int_round(cy + chroma.r);
++	s64 g = drm_fixp2int_round(cy + chroma.g);
++	s64 b = drm_fixp2int_round(cy + chroma.b);
++
++	return argb_u16_from_u16161616(0xffff, clamp(r, 0, 0xffff),
++				     clamp(g, 0, 0xffff), clamp(b, 0, 0xffff));
++}
++
++/* Preserve crop/rotation/chroma siting from the generic NV12 reader. */
++static void NV12_read_line(const struct vkms_plane_state *plane, int x_start,
++			  int y_start, enum pixel_read_direction direction, int count,
++			  struct pixel_argb_u16 out_pixel[])
++{
++	const struct drm_plane_state *state = &plane->base.base;
++	const struct vkms_nv12_lut *lut = &nv12_luts[state->color_encoding][state->color_range];
++	u8 *y, *uv;
++	struct vkms_nv12_chroma chroma;
++	int step_y = get_block_step_bytes(plane->frame_info->fb, direction, 0);
++	int step_uv = get_block_step_bytes(plane->frame_info->fb, direction, 1);
++	int offset = get_subsampling_offset(direction, x_start, y_start);
++	int i;
++
++	if (count <= 0)
++		return;
++
++	packed_pixels_addr_1x1(plane->frame_info, x_start, y_start, 0, &y);
++	packed_pixels_addr_1x1(plane->frame_info, x_start / 2, y_start / 2, 1, &uv);
++	chroma = vkms_nv12_chroma(lut, uv[0], uv[1]);
++	for (i = 0; i < count; i++) {
++		out_pixel[i] = argb_u16_from_nv12_lut(lut, y[0], chroma);
++		y += step_y;
++		if (!((i + offset + 1) & 1) && i + 1 < count) {
++			uv += step_uv;
++			chroma = vkms_nv12_chroma(lut, uv[0], uv[1]);
++		}
++	}
++}
+ 
+ /**
+  * READ_LINE() - Generic generator for a read_line function which can be used for format with one
+@@ -657,6 +777,15 @@
+ 	*pixel = cpu_to_le16(r << 11 | g << 5 | b);
+ }
+ 
++/* Direct calls allow inlining without per-pixel indirect-call overhead. */
++static void vkms_xrgb8888_write_line(u8 *dst, const struct pixel_argb_u16 *src, int count)
++{
++	int x;
++
++	for (x = 0; x < count; x++)
++		argb_u16_to_XRGB8888(dst + x * 4, &src[x]);
++}
++
+ /**
+  * vkms_writeback_row() - Generic loop for all supported writeback format. It is executed just
+  * after the blending to write a line in the writeback buffer.
+@@ -676,6 +805,11 @@
+ 	packed_pixels_addr(frame_info, x_dst, y, 0, &dst_pixels, &rem_x, &rem_y);
+ 	struct pixel_argb_u16 *in_pixels = src_buffer->pixels;
+ 	int x_limit = min_t(size_t, drm_rect_width(&frame_info->dst), src_buffer->n_pixels);
++
++	if (frame_info->fb->format->format == DRM_FORMAT_XRGB8888) {
++		vkms_xrgb8888_write_line(dst_pixels, in_pixels, x_limit);
++		return;
++	}
+ 
+ 	for (size_t x = 0; x < x_limit; x++, dst_pixels += frame_info->fb->format->cpp[0])
+ 		wb->pixel_write(dst_pixels, &in_pixels[x]);
+@@ -720,6 +854,7 @@
+ 	case DRM_FORMAT_BGR565:
+ 		return &BGR565_read_line;
+ 	case DRM_FORMAT_NV12:
++		return &NV12_read_line;
+ 	case DRM_FORMAT_NV16:
+ 	case DRM_FORMAT_NV24:
+ 	case DRM_FORMAT_NV21:
+@@ -969,3 +1104,18 @@
+ 		BUG();
+ 	}
+ }
++
++/* Initialize before configfs can create devices; tables are read-only thereafter. */
++void __init vkms_init_nv12_luts(void)
++{
++	struct conversion_matrix matrix;
++	int encoding, range;
++
++	for (encoding = 0; encoding < DRM_COLOR_ENCODING_MAX; encoding++) {
++		for (range = 0; range < DRM_COLOR_RANGE_MAX; range++) {
++			get_conversion_matrix_to_argb_u16(DRM_FORMAT_NV12, encoding, range,
++							 &matrix);
++			vkms_build_nv12_lut(&nv12_luts[encoding][range], &matrix);
++		}
++	}
++}
+--- a/drivers/gpu/drm/vkms/vkms_formats.h
++++ b/drivers/gpu/drm/vkms/vkms_formats.h
+@@ -4,6 +4,8 @@
+ #define _VKMS_FORMATS_H_
+ 
+ #include "vkms_drv.h"
++
++void vkms_init_nv12_luts(void);
+ 
+ pixel_read_line_t get_pixel_read_line_function(u32 format);
+ 
+--- a/drivers/gpu/drm/vkms/vkms_composer.c
++++ b/drivers/gpu/drm/vkms/vkms_composer.c
+@@ -48,6 +48,15 @@
+ 	const struct pixel_argb_u16 *in = &stage_buffer->pixels[x_start];
+ 
+ 	for (int i = 0; i < pixel_count; i++) {
++		/* Exact endpoints of the premultiplied-alpha equation. */
++		if (in[i].a == 0xffff) {
++			out[i] = in[i];
++			continue;
++		}
++		if (!(in[i].a | in[i].r | in[i].g | in[i].b)) {
++			out[i].a = 0xffff;
++			continue;
++		}
+ 		out[i].a = (u16)0xffff;
+ 		out[i].r = pre_mul_blend_channel(in[i].r, out[i].r, in[i].a);
+ 		out[i].g = pre_mul_blend_channel(in[i].g, out[i].g, in[i].a);

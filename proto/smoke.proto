@@ -1,0 +1,8 @@
+syntax = "proto3";
+package zt.smoke;
+
+message Status {
+  string platform = 1;
+  uint32 frame_width = 2;
+  optional uint32 sequence = 3;
+}

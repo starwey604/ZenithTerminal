@@ -1,0 +1,63 @@
+{
+  "version": 5,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "ZT_SUPERBUILD": "ON",
+        "ZT_BUILD_JOBS": "2",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "native",
+      "inherits": "base",
+      "displayName": "Native Clang",
+      "cacheVariables": {
+        "ZT_PLATFORM": "native"
+      }
+    },
+    {
+      "name": "rk3566-clang",
+      "inherits": "base",
+      "displayName": "Radxa ZERO 3E / Clang / AArch64",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/rk3566-clang.cmake",
+      "cacheVariables": {
+        "ZT_PLATFORM": "rk3566",
+        "ZT_RK_SDK_ROOT": "$env{HOME}/codings/sdks/radxa-rk356x-linux6.1-rkr4/buildroot/output/rockchip_rk3566/host"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "native",
+      "configurePreset": "native",
+      "jobs": 2
+    },
+    {
+      "name": "rk3566-clang",
+      "configurePreset": "rk3566-clang",
+      "jobs": 2
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "native",
+      "configurePreset": "native",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ]
+}

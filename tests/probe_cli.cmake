@@ -1,0 +1,13 @@
+function(expect_exit expected)
+    execute_process(COMMAND "${PROBE}" ${ARGN} RESULT_VARIABLE result
+        OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(NOT "${result}" STREQUAL "${expected}")
+        message(FATAL_ERROR "${ARGN}: expected ${expected}, got ${result}: ${output}${error}")
+    endif()
+endfunction()
+expect_exit(2 --unknown)
+expect_exit(2 --device)
+expect_exit(2 --driver --help)
+expect_exit(2 --driver vkms --device /dev/null)
+expect_exit(1 --device /zenith-test-nonexistent-directory/card0)
+expect_exit(1 --device /dev/null)

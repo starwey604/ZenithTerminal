@@ -1,3 +1,15 @@
 [submodule "3rdparty/BUAABackend"]
 	path = 3rdparty/BUAABackend
 	url = https://github.com/BUAA-Transistor-alg/RM2027-CustomTerminal-CommunicationBackend
+[submodule "3rdparty/protobuf"]
+	path = 3rdparty/protobuf
+	url = https://github.com/protocolbuffers/protobuf.git
+[submodule "3rdparty/paho-mqtt-c"]
+	path = 3rdparty/paho-mqtt-c
+	url = https://github.com/eclipse-paho/paho.mqtt.c.git
+[submodule "3rdparty/paho-mqtt-cpp"]
+	path = 3rdparty/paho-mqtt-cpp
+	url = https://github.com/eclipse-paho/paho.mqtt.cpp.git
+[submodule "3rdparty/SDL"]
+	path = 3rdparty/SDL
+	url = https://github.com/libsdl-org/SDL.git

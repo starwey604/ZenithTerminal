@@ -1,0 +1,16 @@
+# These tests must reject invalid options before opening any DRM device.
+function(expect_exit expected pattern)
+    execute_process(COMMAND "${APP}" --drm-demo ${ARGN} RESULT_VARIABLE result
+        OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(NOT "${result}" STREQUAL "${expected}" OR NOT "${output}${error}" MATCHES "${pattern}")
+        message(FATAL_ERROR "${ARGN}: expected ${expected}/${pattern}, got ${result}: ${output}${error}")
+    endif()
+endfunction()
+expect_exit(0 "--profile" --help)
+expect_exit(1 "video format must be" --video-format bad)
+expect_exit(1 "state must be" --state bad)
+expect_exit(1 "invalid frame count" --warmup -1)
+expect_exit(1 "invalid frame count" --frames 1x)
+expect_exit(1 "unknown/missing" --profile)
+expect_exit(1 "no --capture" --no-writeback --no-preview --capture unused.bmp)
+expect_exit(1 "cannot open profile" --profile /zenith-nonexistent-directory/profile.csv)

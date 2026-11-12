@@ -1,0 +1,295 @@
+{
+  "baseline": {
+    "measured_frames": 100,
+    "fps": 4.307655201020233,
+    "mean_ms": {
+      "video_ms": 1.6040867,
+      "ui_ms": 1.30636092,
+      "request_ms": 0.00805092,
+      "commit_ms": 110.32522746,
+      "writeback_ms": 118.89791622,
+      "verify_ms": 0.00030149,
+      "preview_ms": 4.2080000000000004e-05,
+      "capture_ms": 0.00016321,
+      "work_ms": 232.14458070999999,
+      "pacing_ms": 0.00027614,
+      "total_ms": 232.14485685
+    }
+  },
+  "rgb-wb-full": {
+    "measured_frames": 100,
+    "fps": 58.31080330719541,
+    "mean_ms": {
+      "video_ms": 0.82134654,
+      "ui_ms": 1.13346662,
+      "request_ms": 0.00554729,
+      "commit_ms": 2.8855886,
+      "writeback_ms": 12.30206682,
+      "verify_ms": 0.00024074,
+      "preview_ms": 6.644000000000001e-05,
+      "capture_ms": 0.00014613,
+      "work_ms": 17.14905725,
+      "pacing_ms": 0.00042352,
+      "total_ms": 17.14948077
+    }
+  },
+  "nv12-no-wb-full": {
+    "measured_frames": 100,
+    "fps": 60.04226872445499,
+    "mean_ms": {
+      "video_ms": 1.69214563,
+      "ui_ms": 1.10227215,
+      "request_ms": 0.0036693,
+      "commit_ms": 13.85596615,
+      "writeback_ms": 0.00017542,
+      "verify_ms": 6.365e-05,
+      "preview_ms": 4.515e-05,
+      "capture_ms": 4.964e-05,
+      "work_ms": 16.65467643,
+      "pacing_ms": 0.00025719,
+      "total_ms": 16.65493362
+    }
+  },
+  "nv12-wb-delta": {
+    "measured_frames": 100,
+    "fps": 4.367086457410168,
+    "mean_ms": {
+      "video_ms": 1.69841478,
+      "ui_ms": 1.24208059,
+      "request_ms": 0.00325388,
+      "commit_ms": 108.51957117,
+      "writeback_ms": 117.51934402,
+      "verify_ms": 0.00029016000000000003,
+      "preview_ms": 4.142e-05,
+      "capture_ms": 0.0001799,
+      "work_ms": 228.98516228,
+      "pacing_ms": 0.00045771,
+      "total_ms": 228.98561999
+    }
+  },
+  "fast-nv12-wb-full": {
+    "measured_frames": 100,
+    "fps": 20.616580858931506,
+    "mean_ms": {
+      "video_ms": 1.51057649,
+      "ui_ms": 1.18687552,
+      "request_ms": 0.00664336,
+      "commit_ms": 18.93643014,
+      "writeback_ms": 26.86182977,
+      "verify_ms": 0.00027798,
+      "preview_ms": 4.07e-05,
+      "capture_ms": 0.00016383,
+      "work_ms": 48.504293,
+      "pacing_ms": 0.00035512,
+      "total_ms": 48.50464812
+    }
+  },
+  "fast-rgb-wb-full": {
+    "measured_frames": 100,
+    "fps": 59.452095115582985,
+    "mean_ms": {
+      "video_ms": 0.83859327,
+      "ui_ms": 1.16443579,
+      "request_ms": 0.00677,
+      "commit_ms": 2.58144107,
+      "writeback_ms": 12.22709493,
+      "verify_ms": 0.00040501,
+      "preview_ms": 3.57e-05,
+      "capture_ms": 0.00016165,
+      "work_ms": 16.81996247,
+      "pacing_ms": 0.00030261999999999997,
+      "total_ms": 16.82026509
+    }
+  },
+  "fast-nv12-no-wb-full": {
+    "measured_frames": 100,
+    "fps": 60.06113672357224,
+    "mean_ms": {
+      "video_ms": 1.74646116,
+      "ui_ms": 1.11543368,
+      "request_ms": 0.0044393,
+      "commit_ms": 13.78217862,
+      "writeback_ms": 0.00031868,
+      "verify_ms": 5.275e-05,
+      "preview_ms": 4.978e-05,
+      "capture_ms": 0.00010581,
+      "work_ms": 16.64944323,
+      "pacing_ms": 0.0002583,
+      "total_ms": 16.64970153
+    }
+  },
+  "fast-nv12-wb-delta": {
+    "measured_frames": 100,
+    "fps": 20.21469180812467,
+    "mean_ms": {
+      "video_ms": 1.65918083,
+      "ui_ms": 1.25859807,
+      "request_ms": 0.0034218,
+      "commit_ms": 19.27956252,
+      "writeback_ms": 27.26568098,
+      "verify_ms": 0.00028339,
+      "preview_ms": 4.307e-05,
+      "capture_ms": 0.00017968000000000001,
+      "work_ms": 49.46868886,
+      "pacing_ms": 0.000282,
+      "total_ms": 49.46897086
+    }
+  },
+  "fast-preview": {
+    "measured_frames": 590,
+    "fps": 20.50105865293424,
+    "mean_ms": {
+      "video_ms": 1.4238466711864406,
+      "ui_ms": 1.3509892610169492,
+      "request_ms": 0.008062437288135594,
+      "commit_ms": 17.139192820338984,
+      "writeback_ms": 26.789811220338983,
+      "verify_ms": 0.0002429084745762712,
+      "preview_ms": 2.053923705084746,
+      "capture_ms": 0.01017391186440678,
+      "work_ms": 48.77749759830508,
+      "pacing_ms": 0.00047123389830508477,
+      "total_ms": 48.77796883220339
+    }
+  },
+  "lut-nv12-wb": {
+    "measured_frames": 100,
+    "fps": 31.121921825206208,
+    "mean_ms": {
+      "video_ms": 1.55024841,
+      "ui_ms": 1.30143911,
+      "request_ms": 0.00686262,
+      "commit_ms": 13.69171828,
+      "writeback_ms": 15.57869179,
+      "verify_ms": 0.00035887,
+      "preview_ms": 3.848e-05,
+      "capture_ms": 0.00016607,
+      "work_ms": 32.13118554,
+      "pacing_ms": 0.00050625,
+      "total_ms": 32.13169179
+    },
+    "median_total_ms": 33.253953499999994,
+    "p95_total_ms": 38.21685,
+    "frames_over_25ms": 90
+  },
+  "lut-pair-nv12": {
+    "measured_frames": 300,
+    "fps": 39.676701098525804,
+    "mean_ms": {
+      "video_ms": 1.4436629766666667,
+      "ui_ms": 1.22293097,
+      "request_ms": 0.00636533,
+      "commit_ms": 7.20313719,
+      "writeback_ms": 15.325720756666668,
+      "verify_ms": 0.0002787033333333333,
+      "preview_ms": 3.889666666666667e-05,
+      "capture_ms": 8.124333333333333e-05,
+      "work_ms": 25.203216616666666,
+      "pacing_ms": 0.0004916633333333333,
+      "total_ms": 25.20370828
+    },
+    "median_total_ms": 24.970264,
+    "p95_total_ms": 35.559972,
+    "frames_over_25ms": 149
+  },
+  "lut-row-nv12": {
+    "measured_frames": 300,
+    "fps": 59.89101380675328,
+    "mean_ms": {
+      "video_ms": 1.5356288033333334,
+      "ui_ms": 1.1026666166666668,
+      "request_ms": 0.0039011966666666668,
+      "commit_ms": 4.427743226666666,
+      "writeback_ms": 9.625425543333334,
+      "verify_ms": 0.00021452666666666668,
+      "preview_ms": 4.350666666666667e-05,
+      "capture_ms": 0.00014038,
+      "work_ms": 16.69648935,
+      "pacing_ms": 0.00050635,
+      "total_ms": 16.6969957
+    },
+    "median_total_ms": 16.6827935,
+    "p95_total_ms": 17.662451,
+    "frames_over_25ms": 1
+  },
+  "lut-row-preview": {
+    "measured_frames": 1190,
+    "fps": 57.99873734107186,
+    "mean_ms": {
+      "video_ms": 1.42468402605042,
+      "ui_ms": 1.1647501983193278,
+      "request_ms": 0.006200764705882353,
+      "commit_ms": 4.491325869747899,
+      "writeback_ms": 9.32735083277311,
+      "verify_ms": 0.00025841932773109245,
+      "preview_ms": 0.8211757134453781,
+      "capture_ms": 0.004750231932773109,
+      "work_ms": 17.241156351260503,
+      "pacing_ms": 0.0005983117647058823,
+      "total_ms": 17.24175466302521
+    },
+    "median_total_ms": 16.670886,
+    "p95_total_ms": 22.275892,
+    "frames_over_25ms": 43
+  },
+  "lut-row-rgb": {
+    "measured_frames": 100,
+    "fps": 60.02877295543574,
+    "mean_ms": {
+      "video_ms": 1.13298569,
+      "ui_ms": 1.12053353,
+      "request_ms": 0.00550378,
+      "commit_ms": 6.27705898,
+      "writeback_ms": 8.12049984,
+      "verify_ms": 0.00028778,
+      "preview_ms": 5.414e-05,
+      "capture_ms": 0.00017036000000000002,
+      "work_ms": 16.658322,
+      "pacing_ms": 0.00035601,
+      "total_ms": 16.65867801
+    },
+    "median_total_ms": 16.7105655,
+    "p95_total_ms": 17.55438,
+    "frames_over_25ms": 0
+  },
+  "60fps-preview": {
+    "measured_frames": 1190,
+    "fps": 59.152397202080834,
+    "mean_ms": {
+      "video_ms": 1.721750099159664,
+      "ui_ms": 1.3722320957983194,
+      "request_ms": 0.0068873798319327734,
+      "commit_ms": 5.80594108907563,
+      "writeback_ms": 7.144460325210084,
+      "verify_ms": 0.0002565109243697479,
+      "preview_ms": 0.8473703277310924,
+      "capture_ms": 0.005312368907563025,
+      "work_ms": 16.904950007563023,
+      "pacing_ms": 0.0005356075630252101,
+      "total_ms": 16.90548561512605
+    },
+    "median_total_ms": 16.6559485,
+    "p95_total_ms": 18.0422,
+    "frames_over_25ms": 21
+  },
+  "60fps-nv12": {
+    "measured_frames": 300,
+    "fps": 58.87422462131025,
+    "mean_ms": {
+      "video_ms": 1.56754438,
+      "ui_ms": 1.1134493833333334,
+      "request_ms": 0.00436574,
+      "commit_ms": 6.6537060666666665,
+      "writeback_ms": 7.644722696666666,
+      "verify_ms": 0.00019671666666666666,
+      "preview_ms": 4.315333333333333e-05,
+      "capture_ms": 0.00011449,
+      "work_ms": 16.984889286666668,
+      "pacing_ms": 0.0004724133333333333,
+      "total_ms": 16.9853617
+    },
+    "median_total_ms": 16.665291,
+    "p95_total_ms": 17.901517,
+    "frames_over_25ms": 6
+  }
+}

@@ -1,0 +1,686 @@
+Device /dev/dri/card0 driver=vkms
+Query only: no modeset, framebuffer allocation, atomic commit or master request.
+Client capabilities: atomic=1 universal_planes=1 writeback_visibility=1
+  DUMB_BUFFER=1
+  PRIME (bit0=import, bit1=export)=3
+  ADDFB2_MODIFIERS=1
+  CRTC_IN_VBLANK_EVENT=1
+CRTCs (possible_crtcs masks refer to index, not object ID):
+  CRTC 86 index=0
+    property ACTIVE (#23) = 1 range=[0, 1]
+    property MODE_ID (#24) = 97 blob
+    property OUT_FENCE_PTR (#20) = 0 range=[0, 18446744073709551615]
+    property VRR_ENABLED (#25) = 0 range=[0, 1]
+    property PASSIVE_VRR_DISABLED (#26) = 0 range=[0, 1]
+    property GAMMA_LUT (#30) = 98 blob
+    property GAMMA_LUT_SIZE (#31) = 256 immutable range=[0, 4294967295]
+    property BACKGROUND_COLOR (#32) = 18446462598732840960 range=[0, 18446744073709551615]
+Encoders:
+  encoder 87 current_crtc=0 possible_crtcs=0x1
+  encoder 93 current_crtc=86 possible_crtcs=0x1
+Connectors:
+  connector 88 Writeback-2 unknown current_encoder=0 possible_crtcs=0x1 encoders=87
+    writeback formats: AR24 XR24 AB24 XR48 AR48 RG16
+    property DPMS (#2) = 0 enum={0:On, 1:Standby, 2:Suspend, 3:Off}
+    property link-status (#5) = 0 enum={0:Good, 1:Bad}
+    property non-desktop (#7) = 0 immutable range=[0, 1]
+    property TILE (#4) = 0 immutable blob
+    property CRTC_ID (#21) = 0 object
+    property WRITEBACK_OUT_FENCE_PTR (#91) = 0 range=[0, 18446744073709551615]
+    property WRITEBACK_FB_ID (#89) = 0 object
+    property WRITEBACK_PIXEL_FORMATS (#90) = 92 immutable blob
+  connector 94 Virtual-1 connected current_encoder=93 possible_crtcs=0x1 encoders=93
+    mode 1024x768 1024x768 @60Hz preferred
+    mode 4096x2160 4096x2160 @60Hz
+    mode 4096x2160 4096x2160 @60Hz
+    mode 2560x1600 2560x1600 @60Hz
+    mode 2560x1600 2560x1600 @60Hz
+    mode 1920x1440 1920x1440 @60Hz
+    mode 1856x1392 1856x1392 @60Hz
+    mode 1792x1344 1792x1344 @60Hz
+    mode 2048x1152 2048x1152 @60Hz
+    mode 1920x1200 1920x1200 @60Hz
+    mode 1920x1200 1920x1200 @60Hz
+    mode 1920x1080 1920x1080 @60Hz
+    mode 1600x1200 1600x1200 @60Hz
+    mode 1680x1050 1680x1050 @60Hz
+    mode 1680x1050 1680x1050 @60Hz
+    mode 1400x1050 1400x1050 @60Hz
+    mode 1400x1050 1400x1050 @60Hz
+    mode 1600x900 1600x900 @60Hz
+    mode 1280x1024 1280x1024 @60Hz
+    mode 1440x900 1440x900 @60Hz
+    mode 1440x900 1440x900 @60Hz
+    mode 1280x960 1280x960 @60Hz
+    mode 1366x768 1366x768 @60Hz
+    mode 1366x768 1366x768 @60Hz
+    mode 1360x768 1360x768 @60Hz
+    mode 1280x800 1280x800 @60Hz
+    mode 1280x800 1280x800 @60Hz
+    mode 1280x768 1280x768 @60Hz
+    mode 1280x768 1280x768 @60Hz
+    mode 1280x720 1280x720 @60Hz
+    mode 800x600 800x600 @60Hz
+    mode 800x600 800x600 @56Hz
+    mode 848x480 848x480 @60Hz
+    mode 640x480 640x480 @60Hz
+    property DPMS (#2) = 0 enum={0:On, 1:Standby, 2:Suspend, 3:Off}
+    property link-status (#5) = 0 enum={0:Good, 1:Bad}
+    property non-desktop (#7) = 0 immutable range=[0, 1]
+    property TILE (#4) = 0 immutable blob
+    property CRTC_ID (#21) = 86 object
+Planes:
+  plane 36 type=Primary current_crtc=86 current_fb=96 possible_crtcs=0x1
+    formats: AR24 AB24 BA24 RA24 XR24 XB24 RG24 BG24 XR48 XB48 AR48 AB48 RG16 BG16 NV12 NV16 NV24 NV21 NV61 NV42 YU12 YU16 YU24 YV12 YV16 YV24 P010 P012 P016 R1   R2   R4   R8
+    format/modifier AR24 / 0x0000000000000000 LINEAR
+    format/modifier AB24 / 0x0000000000000000 LINEAR
+    format/modifier BA24 / 0x0000000000000000 LINEAR
+    format/modifier RA24 / 0x0000000000000000 LINEAR
+    format/modifier XR24 / 0x0000000000000000 LINEAR
+    format/modifier XB24 / 0x0000000000000000 LINEAR
+    format/modifier RG24 / 0x0000000000000000 LINEAR
+    format/modifier BG24 / 0x0000000000000000 LINEAR
+    format/modifier XR48 / 0x0000000000000000 LINEAR
+    format/modifier XB48 / 0x0000000000000000 LINEAR
+    format/modifier AR48 / 0x0000000000000000 LINEAR
+    format/modifier AB48 / 0x0000000000000000 LINEAR
+    format/modifier RG16 / 0x0000000000000000 LINEAR
+    format/modifier BG16 / 0x0000000000000000 LINEAR
+    format/modifier NV12 / 0x0000000000000000 LINEAR
+    format/modifier NV16 / 0x0000000000000000 LINEAR
+    format/modifier NV24 / 0x0000000000000000 LINEAR
+    format/modifier NV21 / 0x0000000000000000 LINEAR
+    format/modifier NV61 / 0x0000000000000000 LINEAR
+    format/modifier NV42 / 0x0000000000000000 LINEAR
+    format/modifier YU12 / 0x0000000000000000 LINEAR
+    format/modifier YU16 / 0x0000000000000000 LINEAR
+    format/modifier YU24 / 0x0000000000000000 LINEAR
+    format/modifier YV12 / 0x0000000000000000 LINEAR
+    format/modifier YV16 / 0x0000000000000000 LINEAR
+    format/modifier YV24 / 0x0000000000000000 LINEAR
+    format/modifier P010 / 0x0000000000000000 LINEAR
+    format/modifier P012 / 0x0000000000000000 LINEAR
+    format/modifier P016 / 0x0000000000000000 LINEAR
+    format/modifier R1   / 0x0000000000000000 LINEAR
+    format/modifier R2   / 0x0000000000000000 LINEAR
+    format/modifier R4   / 0x0000000000000000 LINEAR
+    format/modifier R8   / 0x0000000000000000 LINEAR
+    property type (#9) = 1 immutable enum={0:Overlay, 1:Primary, 2:Cursor}
+    property FB_ID (#18) = 96 object
+    property IN_FENCE_FD (#19) = -1 range=[-1, 2147483647]
+    property CRTC_ID (#21) = 86 object
+    property CRTC_X (#14) = 0 range=[-2147483648, 2147483647]
+    property CRTC_Y (#15) = 0 range=[-2147483648, 2147483647]
+    property CRTC_W (#16) = 1024 range=[0, 2147483647]
+    property CRTC_H (#17) = 768 range=[0, 2147483647]
+    property SRC_X (#10) = 0 range=[0, 4294967295]
+    property SRC_Y (#11) = 0 range=[0, 4294967295]
+    property SRC_W (#12) = 67108864 range=[0, 4294967295]
+    property SRC_H (#13) = 50331648 range=[0, 4294967295]
+    property IN_FORMATS (#33) = 37 immutable blob
+    property rotation (#38) = 1 bit-index={0:rotate-0, 1:rotate-90, 2:rotate-180, 3:rotate-270, 4:reflect-x, 5:reflect-y}
+    property COLOR_ENCODING (#39) = 0 enum={0:ITU-R BT.601 YCbCr, 1:ITU-R BT.709 YCbCr, 2:ITU-R BT.2020 YCbCr}
+    property COLOR_RANGE (#40) = 1 enum={0:YCbCr limited range, 1:YCbCr full range}
+    zpos: not exposed
+    alpha: not exposed
+    pixel blend mode: not exposed
+  plane 41 type=Overlay current_crtc=0 current_fb=0 possible_crtcs=0x1
+    formats: AR24 AB24 BA24 RA24 XR24 XB24 RG24 BG24 XR48 XB48 AR48 AB48 RG16 BG16 NV12 NV16 NV24 NV21 NV61 NV42 YU12 YU16 YU24 YV12 YV16 YV24 P010 P012 P016 R1   R2   R4   R8
+    format/modifier AR24 / 0x0000000000000000 LINEAR
+    format/modifier AB24 / 0x0000000000000000 LINEAR
+    format/modifier BA24 / 0x0000000000000000 LINEAR
+    format/modifier RA24 / 0x0000000000000000 LINEAR
+    format/modifier XR24 / 0x0000000000000000 LINEAR
+    format/modifier XB24 / 0x0000000000000000 LINEAR
+    format/modifier RG24 / 0x0000000000000000 LINEAR
+    format/modifier BG24 / 0x0000000000000000 LINEAR
+    format/modifier XR48 / 0x0000000000000000 LINEAR
+    format/modifier XB48 / 0x0000000000000000 LINEAR
+    format/modifier AR48 / 0x0000000000000000 LINEAR
+    format/modifier AB48 / 0x0000000000000000 LINEAR
+    format/modifier RG16 / 0x0000000000000000 LINEAR
+    format/modifier BG16 / 0x0000000000000000 LINEAR
+    format/modifier NV12 / 0x0000000000000000 LINEAR
+    format/modifier NV16 / 0x0000000000000000 LINEAR
+    format/modifier NV24 / 0x0000000000000000 LINEAR
+    format/modifier NV21 / 0x0000000000000000 LINEAR
+    format/modifier NV61 / 0x0000000000000000 LINEAR
+    format/modifier NV42 / 0x0000000000000000 LINEAR
+    format/modifier YU12 / 0x0000000000000000 LINEAR
+    format/modifier YU16 / 0x0000000000000000 LINEAR
+    format/modifier YU24 / 0x0000000000000000 LINEAR
+    format/modifier YV12 / 0x0000000000000000 LINEAR
+    format/modifier YV16 / 0x0000000000000000 LINEAR
+    format/modifier YV24 / 0x0000000000000000 LINEAR
+    format/modifier P010 / 0x0000000000000000 LINEAR
+    format/modifier P012 / 0x0000000000000000 LINEAR
+    format/modifier P016 / 0x0000000000000000 LINEAR
+    format/modifier R1   / 0x0000000000000000 LINEAR
+    format/modifier R2   / 0x0000000000000000 LINEAR
+    format/modifier R4   / 0x0000000000000000 LINEAR
+    format/modifier R8   / 0x0000000000000000 LINEAR
+    property type (#9) = 0 immutable enum={0:Overlay, 1:Primary, 2:Cursor}
+    property FB_ID (#18) = 0 object
+    property IN_FENCE_FD (#19) = -1 range=[-1, 2147483647]
+    property CRTC_ID (#21) = 0 object
+    property CRTC_X (#14) = 0 range=[-2147483648, 2147483647]
+    property CRTC_Y (#15) = 0 range=[-2147483648, 2147483647]
+    property CRTC_W (#16) = 0 range=[0, 2147483647]
+    property CRTC_H (#17) = 0 range=[0, 2147483647]
+    property SRC_X (#10) = 0 range=[0, 4294967295]
+    property SRC_Y (#11) = 0 range=[0, 4294967295]
+    property SRC_W (#12) = 0 range=[0, 4294967295]
+    property SRC_H (#13) = 0 range=[0, 4294967295]
+    property IN_FORMATS (#33) = 42 immutable blob
+    property rotation (#43) = 1 bit-index={0:rotate-0, 1:rotate-90, 2:rotate-180, 3:rotate-270, 4:reflect-x, 5:reflect-y}
+    property COLOR_ENCODING (#44) = 0 enum={0:ITU-R BT.601 YCbCr, 1:ITU-R BT.709 YCbCr, 2:ITU-R BT.2020 YCbCr}
+    property COLOR_RANGE (#45) = 1 enum={0:YCbCr limited range, 1:YCbCr full range}
+    zpos: not exposed
+    alpha: not exposed
+    pixel blend mode: not exposed
+  plane 46 type=Overlay current_crtc=0 current_fb=0 possible_crtcs=0x1
+    formats: AR24 AB24 BA24 RA24 XR24 XB24 RG24 BG24 XR48 XB48 AR48 AB48 RG16 BG16 NV12 NV16 NV24 NV21 NV61 NV42 YU12 YU16 YU24 YV12 YV16 YV24 P010 P012 P016 R1   R2   R4   R8
+    format/modifier AR24 / 0x0000000000000000 LINEAR
+    format/modifier AB24 / 0x0000000000000000 LINEAR
+    format/modifier BA24 / 0x0000000000000000 LINEAR
+    format/modifier RA24 / 0x0000000000000000 LINEAR
+    format/modifier XR24 / 0x0000000000000000 LINEAR
+    format/modifier XB24 / 0x0000000000000000 LINEAR
+    format/modifier RG24 / 0x0000000000000000 LINEAR
+    format/modifier BG24 / 0x0000000000000000 LINEAR
+    format/modifier XR48 / 0x0000000000000000 LINEAR
+    format/modifier XB48 / 0x0000000000000000 LINEAR
+    format/modifier AR48 / 0x0000000000000000 LINEAR
+    format/modifier AB48 / 0x0000000000000000 LINEAR
+    format/modifier RG16 / 0x0000000000000000 LINEAR
+    format/modifier BG16 / 0x0000000000000000 LINEAR
+    format/modifier NV12 / 0x0000000000000000 LINEAR
+    format/modifier NV16 / 0x0000000000000000 LINEAR
+    format/modifier NV24 / 0x0000000000000000 LINEAR
+    format/modifier NV21 / 0x0000000000000000 LINEAR
+    format/modifier NV61 / 0x0000000000000000 LINEAR
+    format/modifier NV42 / 0x0000000000000000 LINEAR
+    format/modifier YU12 / 0x0000000000000000 LINEAR
+    format/modifier YU16 / 0x0000000000000000 LINEAR
+    format/modifier YU24 / 0x0000000000000000 LINEAR
+    format/modifier YV12 / 0x0000000000000000 LINEAR
+    format/modifier YV16 / 0x0000000000000000 LINEAR
+    format/modifier YV24 / 0x0000000000000000 LINEAR
+    format/modifier P010 / 0x0000000000000000 LINEAR
+    format/modifier P012 / 0x0000000000000000 LINEAR
+    format/modifier P016 / 0x0000000000000000 LINEAR
+    format/modifier R1   / 0x0000000000000000 LINEAR
+    format/modifier R2   / 0x0000000000000000 LINEAR
+    format/modifier R4   / 0x0000000000000000 LINEAR
+    format/modifier R8   / 0x0000000000000000 LINEAR
+    property type (#9) = 0 immutable enum={0:Overlay, 1:Primary, 2:Cursor}
+    property FB_ID (#18) = 0 object
+    property IN_FENCE_FD (#19) = -1 range=[-1, 2147483647]
+    property CRTC_ID (#21) = 0 object
+    property CRTC_X (#14) = 0 range=[-2147483648, 2147483647]
+    property CRTC_Y (#15) = 0 range=[-2147483648, 2147483647]
+    property CRTC_W (#16) = 0 range=[0, 2147483647]
+    property CRTC_H (#17) = 0 range=[0, 2147483647]
+    property SRC_X (#10) = 0 range=[0, 4294967295]
+    property SRC_Y (#11) = 0 range=[0, 4294967295]
+    property SRC_W (#12) = 0 range=[0, 4294967295]
+    property SRC_H (#13) = 0 range=[0, 4294967295]
+    property IN_FORMATS (#33) = 47 immutable blob
+    property rotation (#48) = 1 bit-index={0:rotate-0, 1:rotate-90, 2:rotate-180, 3:rotate-270, 4:reflect-x, 5:reflect-y}
+    property COLOR_ENCODING (#49) = 0 enum={0:ITU-R BT.601 YCbCr, 1:ITU-R BT.709 YCbCr, 2:ITU-R BT.2020 YCbCr}
+    property COLOR_RANGE (#50) = 1 enum={0:YCbCr limited range, 1:YCbCr full range}
+    zpos: not exposed
+    alpha: not exposed
+    pixel blend mode: not exposed
+  plane 51 type=Overlay current_crtc=0 current_fb=0 possible_crtcs=0x1
+    formats: AR24 AB24 BA24 RA24 XR24 XB24 RG24 BG24 XR48 XB48 AR48 AB48 RG16 BG16 NV12 NV16 NV24 NV21 NV61 NV42 YU12 YU16 YU24 YV12 YV16 YV24 P010 P012 P016 R1   R2   R4   R8
+    format/modifier AR24 / 0x0000000000000000 LINEAR
+    format/modifier AB24 / 0x0000000000000000 LINEAR
+    format/modifier BA24 / 0x0000000000000000 LINEAR
+    format/modifier RA24 / 0x0000000000000000 LINEAR
+    format/modifier XR24 / 0x0000000000000000 LINEAR
+    format/modifier XB24 / 0x0000000000000000 LINEAR
+    format/modifier RG24 / 0x0000000000000000 LINEAR
+    format/modifier BG24 / 0x0000000000000000 LINEAR
+    format/modifier XR48 / 0x0000000000000000 LINEAR
+    format/modifier XB48 / 0x0000000000000000 LINEAR
+    format/modifier AR48 / 0x0000000000000000 LINEAR
+    format/modifier AB48 / 0x0000000000000000 LINEAR
+    format/modifier RG16 / 0x0000000000000000 LINEAR
+    format/modifier BG16 / 0x0000000000000000 LINEAR
+    format/modifier NV12 / 0x0000000000000000 LINEAR
+    format/modifier NV16 / 0x0000000000000000 LINEAR
+    format/modifier NV24 / 0x0000000000000000 LINEAR
+    format/modifier NV21 / 0x0000000000000000 LINEAR
+    format/modifier NV61 / 0x0000000000000000 LINEAR
+    format/modifier NV42 / 0x0000000000000000 LINEAR
+    format/modifier YU12 / 0x0000000000000000 LINEAR
+    format/modifier YU16 / 0x0000000000000000 LINEAR
+    format/modifier YU24 / 0x0000000000000000 LINEAR
+    format/modifier YV12 / 0x0000000000000000 LINEAR
+    format/modifier YV16 / 0x0000000000000000 LINEAR
+    format/modifier YV24 / 0x0000000000000000 LINEAR
+    format/modifier P010 / 0x0000000000000000 LINEAR
+    format/modifier P012 / 0x0000000000000000 LINEAR
+    format/modifier P016 / 0x0000000000000000 LINEAR
+    format/modifier R1   / 0x0000000000000000 LINEAR
+    format/modifier R2   / 0x0000000000000000 LINEAR
+    format/modifier R4   / 0x0000000000000000 LINEAR
+    format/modifier R8   / 0x0000000000000000 LINEAR
+    property type (#9) = 0 immutable enum={0:Overlay, 1:Primary, 2:Cursor}
+    property FB_ID (#18) = 0 object
+    property IN_FENCE_FD (#19) = -1 range=[-1, 2147483647]
+    property CRTC_ID (#21) = 0 object
+    property CRTC_X (#14) = 0 range=[-2147483648, 2147483647]
+    property CRTC_Y (#15) = 0 range=[-2147483648, 2147483647]
+    property CRTC_W (#16) = 0 range=[0, 2147483647]
+    property CRTC_H (#17) = 0 range=[0, 2147483647]
+    property SRC_X (#10) = 0 range=[0, 4294967295]
+    property SRC_Y (#11) = 0 range=[0, 4294967295]
+    property SRC_W (#12) = 0 range=[0, 4294967295]
+    property SRC_H (#13) = 0 range=[0, 4294967295]
+    property IN_FORMATS (#33) = 52 immutable blob
+    property rotation (#53) = 1 bit-index={0:rotate-0, 1:rotate-90, 2:rotate-180, 3:rotate-270, 4:reflect-x, 5:reflect-y}
+    property COLOR_ENCODING (#54) = 0 enum={0:ITU-R BT.601 YCbCr, 1:ITU-R BT.709 YCbCr, 2:ITU-R BT.2020 YCbCr}
+    property COLOR_RANGE (#55) = 1 enum={0:YCbCr limited range, 1:YCbCr full range}
+    zpos: not exposed
+    alpha: not exposed
+    pixel blend mode: not exposed
+  plane 56 type=Overlay current_crtc=0 current_fb=0 possible_crtcs=0x1
+    formats: AR24 AB24 BA24 RA24 XR24 XB24 RG24 BG24 XR48 XB48 AR48 AB48 RG16 BG16 NV12 NV16 NV24 NV21 NV61 NV42 YU12 YU16 YU24 YV12 YV16 YV24 P010 P012 P016 R1   R2   R4   R8
+    format/modifier AR24 / 0x0000000000000000 LINEAR
+    format/modifier AB24 / 0x0000000000000000 LINEAR
+    format/modifier BA24 / 0x0000000000000000 LINEAR
+    format/modifier RA24 / 0x0000000000000000 LINEAR
+    format/modifier XR24 / 0x0000000000000000 LINEAR
+    format/modifier XB24 / 0x0000000000000000 LINEAR
+    format/modifier RG24 / 0x0000000000000000 LINEAR
+    format/modifier BG24 / 0x0000000000000000 LINEAR
+    format/modifier XR48 / 0x0000000000000000 LINEAR
+    format/modifier XB48 / 0x0000000000000000 LINEAR
+    format/modifier AR48 / 0x0000000000000000 LINEAR
+    format/modifier AB48 / 0x0000000000000000 LINEAR
+    format/modifier RG16 / 0x0000000000000000 LINEAR
+    format/modifier BG16 / 0x0000000000000000 LINEAR
+    format/modifier NV12 / 0x0000000000000000 LINEAR
+    format/modifier NV16 / 0x0000000000000000 LINEAR
+    format/modifier NV24 / 0x0000000000000000 LINEAR
+    format/modifier NV21 / 0x0000000000000000 LINEAR
+    format/modifier NV61 / 0x0000000000000000 LINEAR
+    format/modifier NV42 / 0x0000000000000000 LINEAR
+    format/modifier YU12 / 0x0000000000000000 LINEAR
+    format/modifier YU16 / 0x0000000000000000 LINEAR
+    format/modifier YU24 / 0x0000000000000000 LINEAR
+    format/modifier YV12 / 0x0000000000000000 LINEAR
+    format/modifier YV16 / 0x0000000000000000 LINEAR
+    format/modifier YV24 / 0x0000000000000000 LINEAR
+    format/modifier P010 / 0x0000000000000000 LINEAR
+    format/modifier P012 / 0x0000000000000000 LINEAR
+    format/modifier P016 / 0x0000000000000000 LINEAR
+    format/modifier R1   / 0x0000000000000000 LINEAR
+    format/modifier R2   / 0x0000000000000000 LINEAR
+    format/modifier R4   / 0x0000000000000000 LINEAR
+    format/modifier R8   / 0x0000000000000000 LINEAR
+    property type (#9) = 0 immutable enum={0:Overlay, 1:Primary, 2:Cursor}
+    property FB_ID (#18) = 0 object
+    property IN_FENCE_FD (#19) = -1 range=[-1, 2147483647]
+    property CRTC_ID (#21) = 0 object
+    property CRTC_X (#14) = 0 range=[-2147483648, 2147483647]
+    property CRTC_Y (#15) = 0 range=[-2147483648, 2147483647]
+    property CRTC_W (#16) = 0 range=[0, 2147483647]
+    property CRTC_H (#17) = 0 range=[0, 2147483647]
+    property SRC_X (#10) = 0 range=[0, 4294967295]
+    property SRC_Y (#11) = 0 range=[0, 4294967295]
+    property SRC_W (#12) = 0 range=[0, 4294967295]
+    property SRC_H (#13) = 0 range=[0, 4294967295]
+    property IN_FORMATS (#33) = 57 immutable blob
+    property rotation (#58) = 1 bit-index={0:rotate-0, 1:rotate-90, 2:rotate-180, 3:rotate-270, 4:reflect-x, 5:reflect-y}
+    property COLOR_ENCODING (#59) = 0 enum={0:ITU-R BT.601 YCbCr, 1:ITU-R BT.709 YCbCr, 2:ITU-R BT.2020 YCbCr}
+    property COLOR_RANGE (#60) = 1 enum={0:YCbCr limited range, 1:YCbCr full range}
+    zpos: not exposed
+    alpha: not exposed
+    pixel blend mode: not exposed
+  plane 61 type=Overlay current_crtc=0 current_fb=0 possible_crtcs=0x1
+    formats: AR24 AB24 BA24 RA24 XR24 XB24 RG24 BG24 XR48 XB48 AR48 AB48 RG16 BG16 NV12 NV16 NV24 NV21 NV61 NV42 YU12 YU16 YU24 YV12 YV16 YV24 P010 P012 P016 R1   R2   R4   R8
+    format/modifier AR24 / 0x0000000000000000 LINEAR
+    format/modifier AB24 / 0x0000000000000000 LINEAR
+    format/modifier BA24 / 0x0000000000000000 LINEAR
+    format/modifier RA24 / 0x0000000000000000 LINEAR
+    format/modifier XR24 / 0x0000000000000000 LINEAR
+    format/modifier XB24 / 0x0000000000000000 LINEAR
+    format/modifier RG24 / 0x0000000000000000 LINEAR
+    format/modifier BG24 / 0x0000000000000000 LINEAR
+    format/modifier XR48 / 0x0000000000000000 LINEAR
+    format/modifier XB48 / 0x0000000000000000 LINEAR
+    format/modifier AR48 / 0x0000000000000000 LINEAR
+    format/modifier AB48 / 0x0000000000000000 LINEAR
+    format/modifier RG16 / 0x0000000000000000 LINEAR
+    format/modifier BG16 / 0x0000000000000000 LINEAR
+    format/modifier NV12 / 0x0000000000000000 LINEAR
+    format/modifier NV16 / 0x0000000000000000 LINEAR
+    format/modifier NV24 / 0x0000000000000000 LINEAR
+    format/modifier NV21 / 0x0000000000000000 LINEAR
+    format/modifier NV61 / 0x0000000000000000 LINEAR
+    format/modifier NV42 / 0x0000000000000000 LINEAR
+    format/modifier YU12 / 0x0000000000000000 LINEAR
+    format/modifier YU16 / 0x0000000000000000 LINEAR
+    format/modifier YU24 / 0x0000000000000000 LINEAR
+    format/modifier YV12 / 0x0000000000000000 LINEAR
+    format/modifier YV16 / 0x0000000000000000 LINEAR
+    format/modifier YV24 / 0x0000000000000000 LINEAR
+    format/modifier P010 / 0x0000000000000000 LINEAR
+    format/modifier P012 / 0x0000000000000000 LINEAR
+    format/modifier P016 / 0x0000000000000000 LINEAR
+    format/modifier R1   / 0x0000000000000000 LINEAR
+    format/modifier R2   / 0x0000000000000000 LINEAR
+    format/modifier R4   / 0x0000000000000000 LINEAR
+    format/modifier R8   / 0x0000000000000000 LINEAR
+    property type (#9) = 0 immutable enum={0:Overlay, 1:Primary, 2:Cursor}
+    property FB_ID (#18) = 0 object
+    property IN_FENCE_FD (#19) = -1 range=[-1, 2147483647]
+    property CRTC_ID (#21) = 0 object
+    property CRTC_X (#14) = 0 range=[-2147483648, 2147483647]
+    property CRTC_Y (#15) = 0 range=[-2147483648, 2147483647]
+    property CRTC_W (#16) = 0 range=[0, 2147483647]
+    property CRTC_H (#17) = 0 range=[0, 2147483647]
+    property SRC_X (#10) = 0 range=[0, 4294967295]
+    property SRC_Y (#11) = 0 range=[0, 4294967295]
+    property SRC_W (#12) = 0 range=[0, 4294967295]
+    property SRC_H (#13) = 0 range=[0, 4294967295]
+    property IN_FORMATS (#33) = 62 immutable blob
+    property rotation (#63) = 1 bit-index={0:rotate-0, 1:rotate-90, 2:rotate-180, 3:rotate-270, 4:reflect-x, 5:reflect-y}
+    property COLOR_ENCODING (#64) = 0 enum={0:ITU-R BT.601 YCbCr, 1:ITU-R BT.709 YCbCr, 2:ITU-R BT.2020 YCbCr}
+    property COLOR_RANGE (#65) = 1 enum={0:YCbCr limited range, 1:YCbCr full range}
+    zpos: not exposed
+    alpha: not exposed
+    pixel blend mode: not exposed
+  plane 66 type=Overlay current_crtc=0 current_fb=0 possible_crtcs=0x1
+    formats: AR24 AB24 BA24 RA24 XR24 XB24 RG24 BG24 XR48 XB48 AR48 AB48 RG16 BG16 NV12 NV16 NV24 NV21 NV61 NV42 YU12 YU16 YU24 YV12 YV16 YV24 P010 P012 P016 R1   R2   R4   R8
+    format/modifier AR24 / 0x0000000000000000 LINEAR
+    format/modifier AB24 / 0x0000000000000000 LINEAR
+    format/modifier BA24 / 0x0000000000000000 LINEAR
+    format/modifier RA24 / 0x0000000000000000 LINEAR
+    format/modifier XR24 / 0x0000000000000000 LINEAR
+    format/modifier XB24 / 0x0000000000000000 LINEAR
+    format/modifier RG24 / 0x0000000000000000 LINEAR
+    format/modifier BG24 / 0x0000000000000000 LINEAR
+    format/modifier XR48 / 0x0000000000000000 LINEAR
+    format/modifier XB48 / 0x0000000000000000 LINEAR
+    format/modifier AR48 / 0x0000000000000000 LINEAR
+    format/modifier AB48 / 0x0000000000000000 LINEAR
+    format/modifier RG16 / 0x0000000000000000 LINEAR
+    format/modifier BG16 / 0x0000000000000000 LINEAR
+    format/modifier NV12 / 0x0000000000000000 LINEAR
+    format/modifier NV16 / 0x0000000000000000 LINEAR
+    format/modifier NV24 / 0x0000000000000000 LINEAR
+    format/modifier NV21 / 0x0000000000000000 LINEAR
+    format/modifier NV61 / 0x0000000000000000 LINEAR
+    format/modifier NV42 / 0x0000000000000000 LINEAR
+    format/modifier YU12 / 0x0000000000000000 LINEAR
+    format/modifier YU16 / 0x0000000000000000 LINEAR
+    format/modifier YU24 / 0x0000000000000000 LINEAR
+    format/modifier YV12 / 0x0000000000000000 LINEAR
+    format/modifier YV16 / 0x0000000000000000 LINEAR
+    format/modifier YV24 / 0x0000000000000000 LINEAR
+    format/modifier P010 / 0x0000000000000000 LINEAR
+    format/modifier P012 / 0x0000000000000000 LINEAR
+    format/modifier P016 / 0x0000000000000000 LINEAR
+    format/modifier R1   / 0x0000000000000000 LINEAR
+    format/modifier R2   / 0x0000000000000000 LINEAR
+    format/modifier R4   / 0x0000000000000000 LINEAR
+    format/modifier R8   / 0x0000000000000000 LINEAR
+    property type (#9) = 0 immutable enum={0:Overlay, 1:Primary, 2:Cursor}
+    property FB_ID (#18) = 0 object
+    property IN_FENCE_FD (#19) = -1 range=[-1, 2147483647]
+    property CRTC_ID (#21) = 0 object
+    property CRTC_X (#14) = 0 range=[-2147483648, 2147483647]
+    property CRTC_Y (#15) = 0 range=[-2147483648, 2147483647]
+    property CRTC_W (#16) = 0 range=[0, 2147483647]
+    property CRTC_H (#17) = 0 range=[0, 2147483647]
+    property SRC_X (#10) = 0 range=[0, 4294967295]
+    property SRC_Y (#11) = 0 range=[0, 4294967295]
+    property SRC_W (#12) = 0 range=[0, 4294967295]
+    property SRC_H (#13) = 0 range=[0, 4294967295]
+    property IN_FORMATS (#33) = 67 immutable blob
+    property rotation (#68) = 1 bit-index={0:rotate-0, 1:rotate-90, 2:rotate-180, 3:rotate-270, 4:reflect-x, 5:reflect-y}
+    property COLOR_ENCODING (#69) = 0 enum={0:ITU-R BT.601 YCbCr, 1:ITU-R BT.709 YCbCr, 2:ITU-R BT.2020 YCbCr}
+    property COLOR_RANGE (#70) = 1 enum={0:YCbCr limited range, 1:YCbCr full range}
+    zpos: not exposed
+    alpha: not exposed
+    pixel blend mode: not exposed
+  plane 71 type=Overlay current_crtc=0 current_fb=0 possible_crtcs=0x1
+    formats: AR24 AB24 BA24 RA24 XR24 XB24 RG24 BG24 XR48 XB48 AR48 AB48 RG16 BG16 NV12 NV16 NV24 NV21 NV61 NV42 YU12 YU16 YU24 YV12 YV16 YV24 P010 P012 P016 R1   R2   R4   R8
+    format/modifier AR24 / 0x0000000000000000 LINEAR
+    format/modifier AB24 / 0x0000000000000000 LINEAR
+    format/modifier BA24 / 0x0000000000000000 LINEAR
+    format/modifier RA24 / 0x0000000000000000 LINEAR
+    format/modifier XR24 / 0x0000000000000000 LINEAR
+    format/modifier XB24 / 0x0000000000000000 LINEAR
+    format/modifier RG24 / 0x0000000000000000 LINEAR
+    format/modifier BG24 / 0x0000000000000000 LINEAR
+    format/modifier XR48 / 0x0000000000000000 LINEAR
+    format/modifier XB48 / 0x0000000000000000 LINEAR
+    format/modifier AR48 / 0x0000000000000000 LINEAR
+    format/modifier AB48 / 0x0000000000000000 LINEAR
+    format/modifier RG16 / 0x0000000000000000 LINEAR
+    format/modifier BG16 / 0x0000000000000000 LINEAR
+    format/modifier NV12 / 0x0000000000000000 LINEAR
+    format/modifier NV16 / 0x0000000000000000 LINEAR
+    format/modifier NV24 / 0x0000000000000000 LINEAR
+    format/modifier NV21 / 0x0000000000000000 LINEAR
+    format/modifier NV61 / 0x0000000000000000 LINEAR
+    format/modifier NV42 / 0x0000000000000000 LINEAR
+    format/modifier YU12 / 0x0000000000000000 LINEAR
+    format/modifier YU16 / 0x0000000000000000 LINEAR
+    format/modifier YU24 / 0x0000000000000000 LINEAR
+    format/modifier YV12 / 0x0000000000000000 LINEAR
+    format/modifier YV16 / 0x0000000000000000 LINEAR
+    format/modifier YV24 / 0x0000000000000000 LINEAR
+    format/modifier P010 / 0x0000000000000000 LINEAR
+    format/modifier P012 / 0x0000000000000000 LINEAR
+    format/modifier P016 / 0x0000000000000000 LINEAR
+    format/modifier R1   / 0x0000000000000000 LINEAR
+    format/modifier R2   / 0x0000000000000000 LINEAR
+    format/modifier R4   / 0x0000000000000000 LINEAR
+    format/modifier R8   / 0x0000000000000000 LINEAR
+    property type (#9) = 0 immutable enum={0:Overlay, 1:Primary, 2:Cursor}
+    property FB_ID (#18) = 0 object
+    property IN_FENCE_FD (#19) = -1 range=[-1, 2147483647]
+    property CRTC_ID (#21) = 0 object
+    property CRTC_X (#14) = 0 range=[-2147483648, 2147483647]
+    property CRTC_Y (#15) = 0 range=[-2147483648, 2147483647]
+    property CRTC_W (#16) = 0 range=[0, 2147483647]
+    property CRTC_H (#17) = 0 range=[0, 2147483647]
+    property SRC_X (#10) = 0 range=[0, 4294967295]
+    property SRC_Y (#11) = 0 range=[0, 4294967295]
+    property SRC_W (#12) = 0 range=[0, 4294967295]
+    property SRC_H (#13) = 0 range=[0, 4294967295]
+    property IN_FORMATS (#33) = 72 immutable blob
+    property rotation (#73) = 1 bit-index={0:rotate-0, 1:rotate-90, 2:rotate-180, 3:rotate-270, 4:reflect-x, 5:reflect-y}
+    property COLOR_ENCODING (#74) = 0 enum={0:ITU-R BT.601 YCbCr, 1:ITU-R BT.709 YCbCr, 2:ITU-R BT.2020 YCbCr}
+    property COLOR_RANGE (#75) = 1 enum={0:YCbCr limited range, 1:YCbCr full range}
+    zpos: not exposed
+    alpha: not exposed
+    pixel blend mode: not exposed
+  plane 76 type=Overlay current_crtc=0 current_fb=0 possible_crtcs=0x1
+    formats: AR24 AB24 BA24 RA24 XR24 XB24 RG24 BG24 XR48 XB48 AR48 AB48 RG16 BG16 NV12 NV16 NV24 NV21 NV61 NV42 YU12 YU16 YU24 YV12 YV16 YV24 P010 P012 P016 R1   R2   R4   R8
+    format/modifier AR24 / 0x0000000000000000 LINEAR
+    format/modifier AB24 / 0x0000000000000000 LINEAR
+    format/modifier BA24 / 0x0000000000000000 LINEAR
+    format/modifier RA24 / 0x0000000000000000 LINEAR
+    format/modifier XR24 / 0x0000000000000000 LINEAR
+    format/modifier XB24 / 0x0000000000000000 LINEAR
+    format/modifier RG24 / 0x0000000000000000 LINEAR
+    format/modifier BG24 / 0x0000000000000000 LINEAR
+    format/modifier XR48 / 0x0000000000000000 LINEAR
+    format/modifier XB48 / 0x0000000000000000 LINEAR
+    format/modifier AR48 / 0x0000000000000000 LINEAR
+    format/modifier AB48 / 0x0000000000000000 LINEAR
+    format/modifier RG16 / 0x0000000000000000 LINEAR
+    format/modifier BG16 / 0x0000000000000000 LINEAR
+    format/modifier NV12 / 0x0000000000000000 LINEAR
+    format/modifier NV16 / 0x0000000000000000 LINEAR
+    format/modifier NV24 / 0x0000000000000000 LINEAR
+    format/modifier NV21 / 0x0000000000000000 LINEAR
+    format/modifier NV61 / 0x0000000000000000 LINEAR
+    format/modifier NV42 / 0x0000000000000000 LINEAR
+    format/modifier YU12 / 0x0000000000000000 LINEAR
+    format/modifier YU16 / 0x0000000000000000 LINEAR
+    format/modifier YU24 / 0x0000000000000000 LINEAR
+    format/modifier YV12 / 0x0000000000000000 LINEAR
+    format/modifier YV16 / 0x0000000000000000 LINEAR
+    format/modifier YV24 / 0x0000000000000000 LINEAR
+    format/modifier P010 / 0x0000000000000000 LINEAR
+    format/modifier P012 / 0x0000000000000000 LINEAR
+    format/modifier P016 / 0x0000000000000000 LINEAR
+    format/modifier R1   / 0x0000000000000000 LINEAR
+    format/modifier R2   / 0x0000000000000000 LINEAR
+    format/modifier R4   / 0x0000000000000000 LINEAR
+    format/modifier R8   / 0x0000000000000000 LINEAR
+    property type (#9) = 0 immutable enum={0:Overlay, 1:Primary, 2:Cursor}
+    property FB_ID (#18) = 0 object
+    property IN_FENCE_FD (#19) = -1 range=[-1, 2147483647]
+    property CRTC_ID (#21) = 0 object
+    property CRTC_X (#14) = 0 range=[-2147483648, 2147483647]
+    property CRTC_Y (#15) = 0 range=[-2147483648, 2147483647]
+    property CRTC_W (#16) = 0 range=[0, 2147483647]
+    property CRTC_H (#17) = 0 range=[0, 2147483647]
+    property SRC_X (#10) = 0 range=[0, 4294967295]
+    property SRC_Y (#11) = 0 range=[0, 4294967295]
+    property SRC_W (#12) = 0 range=[0, 4294967295]
+    property SRC_H (#13) = 0 range=[0, 4294967295]
+    property IN_FORMATS (#33) = 77 immutable blob
+    property rotation (#78) = 1 bit-index={0:rotate-0, 1:rotate-90, 2:rotate-180, 3:rotate-270, 4:reflect-x, 5:reflect-y}
+    property COLOR_ENCODING (#79) = 0 enum={0:ITU-R BT.601 YCbCr, 1:ITU-R BT.709 YCbCr, 2:ITU-R BT.2020 YCbCr}
+    property COLOR_RANGE (#80) = 1 enum={0:YCbCr limited range, 1:YCbCr full range}
+    zpos: not exposed
+    alpha: not exposed
+    pixel blend mode: not exposed
+  plane 81 type=Cursor current_crtc=0 current_fb=0 possible_crtcs=0x1
+    formats: AR24 AB24 BA24 RA24 XR24 XB24 RG24 BG24 XR48 XB48 AR48 AB48 RG16 BG16 NV12 NV16 NV24 NV21 NV61 NV42 YU12 YU16 YU24 YV12 YV16 YV24 P010 P012 P016 R1   R2   R4   R8
+    format/modifier AR24 / 0x0000000000000000 LINEAR
+    format/modifier AB24 / 0x0000000000000000 LINEAR
+    format/modifier BA24 / 0x0000000000000000 LINEAR
+    format/modifier RA24 / 0x0000000000000000 LINEAR
+    format/modifier XR24 / 0x0000000000000000 LINEAR
+    format/modifier XB24 / 0x0000000000000000 LINEAR
+    format/modifier RG24 / 0x0000000000000000 LINEAR
+    format/modifier BG24 / 0x0000000000000000 LINEAR
+    format/modifier XR48 / 0x0000000000000000 LINEAR
+    format/modifier XB48 / 0x0000000000000000 LINEAR
+    format/modifier AR48 / 0x0000000000000000 LINEAR
+    format/modifier AB48 / 0x0000000000000000 LINEAR
+    format/modifier RG16 / 0x0000000000000000 LINEAR
+    format/modifier BG16 / 0x0000000000000000 LINEAR
+    format/modifier NV12 / 0x0000000000000000 LINEAR
+    format/modifier NV16 / 0x0000000000000000 LINEAR
+    format/modifier NV24 / 0x0000000000000000 LINEAR
+    format/modifier NV21 / 0x0000000000000000 LINEAR
+    format/modifier NV61 / 0x0000000000000000 LINEAR
+    format/modifier NV42 / 0x0000000000000000 LINEAR
+    format/modifier YU12 / 0x0000000000000000 LINEAR
+    format/modifier YU16 / 0x0000000000000000 LINEAR
+    format/modifier YU24 / 0x0000000000000000 LINEAR
+    format/modifier YV12 / 0x0000000000000000 LINEAR
+    format/modifier YV16 / 0x0000000000000000 LINEAR
+    format/modifier YV24 / 0x0000000000000000 LINEAR
+    format/modifier P010 / 0x0000000000000000 LINEAR
+    format/modifier P012 / 0x0000000000000000 LINEAR
+    format/modifier P016 / 0x0000000000000000 LINEAR
+    format/modifier R1   / 0x0000000000000000 LINEAR
+    format/modifier R2   / 0x0000000000000000 LINEAR
+    format/modifier R4   / 0x0000000000000000 LINEAR
+    format/modifier R8   / 0x0000000000000000 LINEAR
+    property type (#9) = 2 immutable enum={0:Overlay, 1:Primary, 2:Cursor}
+    property FB_ID (#18) = 0 object
+    property IN_FENCE_FD (#19) = -1 range=[-1, 2147483647]
+    property CRTC_ID (#21) = 0 object
+    property CRTC_X (#14) = 0 range=[-2147483648, 2147483647]
+    property CRTC_Y (#15) = 0 range=[-2147483648, 2147483647]
+    property CRTC_W (#16) = 0 range=[0, 2147483647]
+    property CRTC_H (#17) = 0 range=[0, 2147483647]
+    property SRC_X (#10) = 0 range=[0, 4294967295]
+    property SRC_Y (#11) = 0 range=[0, 4294967295]
+    property SRC_W (#12) = 0 range=[0, 4294967295]
+    property SRC_H (#13) = 0 range=[0, 4294967295]
+    property IN_FORMATS (#33) = 82 immutable blob
+    property rotation (#83) = 1 bit-index={0:rotate-0, 1:rotate-90, 2:rotate-180, 3:rotate-270, 4:reflect-x, 5:reflect-y}
+    property COLOR_ENCODING (#84) = 0 enum={0:ITU-R BT.601 YCbCr, 1:ITU-R BT.709 YCbCr, 2:ITU-R BT.2020 YCbCr}
+    property COLOR_RANGE (#85) = 1 enum={0:YCbCr limited range, 1:YCbCr full range}
+    zpos: not exposed
+    alpha: not exposed
+    pixel blend mode: not exposed
+NV12 + AR24 non-cursor plane candidates (format/routing only):
+  CRTC 86: video=36 UI=41 writeback=88
+  CRTC 86: video=36 UI=46 writeback=88
+  CRTC 86: video=36 UI=51 writeback=88
+  CRTC 86: video=36 UI=56 writeback=88
+  CRTC 86: video=36 UI=61 writeback=88
+  CRTC 86: video=36 UI=66 writeback=88
+  CRTC 86: video=36 UI=71 writeback=88
+  CRTC 86: video=36 UI=76 writeback=88
+  CRTC 86: video=41 UI=36 writeback=88
+  CRTC 86: video=41 UI=46 writeback=88
+  CRTC 86: video=41 UI=51 writeback=88
+  CRTC 86: video=41 UI=56 writeback=88
+  CRTC 86: video=41 UI=61 writeback=88
+  CRTC 86: video=41 UI=66 writeback=88
+  CRTC 86: video=41 UI=71 writeback=88
+  CRTC 86: video=41 UI=76 writeback=88
+  CRTC 86: video=46 UI=36 writeback=88
+  CRTC 86: video=46 UI=41 writeback=88
+  CRTC 86: video=46 UI=51 writeback=88
+  CRTC 86: video=46 UI=56 writeback=88
+  CRTC 86: video=46 UI=61 writeback=88
+  CRTC 86: video=46 UI=66 writeback=88
+  CRTC 86: video=46 UI=71 writeback=88
+  CRTC 86: video=46 UI=76 writeback=88
+  CRTC 86: video=51 UI=36 writeback=88
+  CRTC 86: video=51 UI=41 writeback=88
+  CRTC 86: video=51 UI=46 writeback=88
+  CRTC 86: video=51 UI=56 writeback=88
+  CRTC 86: video=51 UI=61 writeback=88
+  CRTC 86: video=51 UI=66 writeback=88
+  CRTC 86: video=51 UI=71 writeback=88
+  CRTC 86: video=51 UI=76 writeback=88
+  CRTC 86: video=56 UI=36 writeback=88
+  CRTC 86: video=56 UI=41 writeback=88
+  CRTC 86: video=56 UI=46 writeback=88
+  CRTC 86: video=56 UI=51 writeback=88
+  CRTC 86: video=56 UI=61 writeback=88
+  CRTC 86: video=56 UI=66 writeback=88
+  CRTC 86: video=56 UI=71 writeback=88
+  CRTC 86: video=56 UI=76 writeback=88
+  CRTC 86: video=61 UI=36 writeback=88
+  CRTC 86: video=61 UI=41 writeback=88
+  CRTC 86: video=61 UI=46 writeback=88
+  CRTC 86: video=61 UI=51 writeback=88
+  CRTC 86: video=61 UI=56 writeback=88
+  CRTC 86: video=61 UI=66 writeback=88
+  CRTC 86: video=61 UI=71 writeback=88
+  CRTC 86: video=61 UI=76 writeback=88
+  CRTC 86: video=66 UI=36 writeback=88
+  CRTC 86: video=66 UI=41 writeback=88
+  CRTC 86: video=66 UI=46 writeback=88
+  CRTC 86: video=66 UI=51 writeback=88
+  CRTC 86: video=66 UI=56 writeback=88
+  CRTC 86: video=66 UI=61 writeback=88
+  CRTC 86: video=66 UI=71 writeback=88
+  CRTC 86: video=66 UI=76 writeback=88
+  CRTC 86: video=71 UI=36 writeback=88
+  CRTC 86: video=71 UI=41 writeback=88
+  CRTC 86: video=71 UI=46 writeback=88
+  CRTC 86: video=71 UI=51 writeback=88
+  CRTC 86: video=71 UI=56 writeback=88
+  CRTC 86: video=71 UI=61 writeback=88
+  CRTC 86: video=71 UI=66 writeback=88
+  CRTC 86: video=71 UI=76 writeback=88
+  CRTC 86: video=76 UI=36 writeback=88
+  CRTC 86: video=76 UI=41 writeback=88
+  CRTC 86: video=76 UI=46 writeback=88
+  CRTC 86: video=76 UI=51 writeback=88
+  CRTC 86: video=76 UI=56 writeback=88
+  CRTC 86: video=76 UI=61 writeback=88
+  CRTC 86: video=76 UI=66 writeback=88
+  CRTC 86: video=76 UI=71 writeback=88
+Candidates still require layer order/blending/modifier checks and atomic TEST_ONLY with real buffers.

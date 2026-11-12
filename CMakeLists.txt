@@ -1,6 +1,71 @@
-cmake_minimum_required(VERSION 4.4)
-project(ZenithTerminal)
+cmake_minimum_required(VERSION 3.24)
 
+option(ZT_ENABLE_PREVIEW "Build desktop SDL writeback preview (native only)" OFF)
+option(ZT_ENABLE_DRM "Build DRM capability library and probe (requires platform libdrm)" OFF)
+if(ZT_ENABLE_PREVIEW AND (NOT ZT_ENABLE_DRM OR CMAKE_TOOLCHAIN_FILE))
+    message(FATAL_ERROR "ZT_ENABLE_PREVIEW requires ZT_ENABLE_DRM and a native build")
+endif()
+option(ZT_SUPERBUILD "Build pinned dependencies before configuring the application" ON)
+set(ZT_PLATFORM native CACHE STRING "Application platform")
+if(ZT_SUPERBUILD)
+    project(ZenithTerminalSuperbuild LANGUAGES NONE)
+    include(cmake/superbuild/Dependencies.cmake)
+    return()
+endif()
+
+project(ZenithTerminal VERSION 0.1.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(ZenithTerminal main.cpp)
+include(cmake/Dependencies.cmake)
+find_package(Threads REQUIRED)
+
+set(_generated "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${_generated}")
+add_custom_command(
+    OUTPUT "${_generated}/smoke.pb.cc" "${_generated}/smoke.pb.h"
+    COMMAND "${ZT_HOST_PROTOC}" --proto_path=${CMAKE_CURRENT_SOURCE_DIR}/proto
+            --cpp_out=${_generated} "${CMAKE_CURRENT_SOURCE_DIR}/proto/smoke.proto"
+    DEPENDS proto/smoke.proto "${ZT_HOST_PROTOC}"
+    VERBATIM)
+add_executable(zenith_terminal main.cpp "${_generated}/smoke.pb.cc")
+set_target_properties(zenith_terminal PROPERTIES OUTPUT_NAME ZenithTerminal)
+# When the binary lives in the build root, its filename already provides the
+# Ninja compatibility entry. A same-name phony target would collide with it.
+if(ZT_OUTPUT_DIR)
+    add_custom_target(ZenithTerminal DEPENDS zenith_terminal)
+endif()
+target_include_directories(zenith_terminal PRIVATE "${_generated}")
+target_link_libraries(zenith_terminal PRIVATE Threads::Threads protobuf::libprotobuf
+    PahoMqttCpp::paho-mqttpp3 SDL3::SDL3-static)
+target_compile_definitions(zenith_terminal PRIVATE ZT_PLATFORM="${ZT_PLATFORM}")
+if(ZT_OUTPUT_DIR)
+    set_target_properties(zenith_terminal PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${ZT_OUTPUT_DIR}")
+endif()
+install(TARGETS zenith_terminal RUNTIME DESTINATION bin)
+include(CTest)
+if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+    add_test(NAME platform-smoke COMMAND zenith_terminal --self-check)
+    set_tests_properties(platform-smoke PROPERTIES TIMEOUT 15 PASS_REGULAR_EXPRESSION "SELF-CHECK PASS")
+endif()
+
+if(ZT_ENABLE_DRM)
+    add_subdirectory(src/ui)
+    add_subdirectory(src/display/drm)
+    target_sources(zenith_terminal PRIVATE src/app/drm_demo.cpp)
+    target_compile_definitions(zenith_terminal PRIVATE ZT_ENABLE_DRM=1)
+    target_link_libraries(zenith_terminal PRIVATE zenith_display_drm zenith_ui)
+    if(ZT_ENABLE_PREVIEW)
+        add_subdirectory(src/preview)
+        target_compile_definitions(zenith_terminal PRIVATE ZT_ENABLE_PREVIEW=1)
+        target_link_libraries(zenith_terminal PRIVATE zenith_preview)
+    endif()
+endif()
+
+if(ZT_ENABLE_DRM AND BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+    add_test(NAME drm-demo-cli COMMAND ${CMAKE_COMMAND}
+        -DAPP=$<TARGET_FILE:zenith_terminal> -P ${PROJECT_SOURCE_DIR}/tests/demo_cli.cmake)
+    set_tests_properties(drm-demo-cli PROPERTIES LABELS unit TIMEOUT 15)
+endif()
