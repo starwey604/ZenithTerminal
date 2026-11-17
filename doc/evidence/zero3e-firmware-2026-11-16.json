@@ -1,0 +1,25 @@
+{
+  "sdk": "/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4",
+  "kernel_release": "6.1.84",
+  "board_ip": "192.168.77.3/24",
+  "hostname": "zenith-zero3e",
+  "ssh_auth": "none (empty root password, Dropbear -B)",
+  "images_bytes": {
+    "MiniLoaderAll.bin": 481728,
+    "uboot.img": 4194304,
+    "boot.img": 40481280,
+    "recovery.img": 49751040,
+    "rootfs.img": 50081792,
+    "oem.img": 18800640,
+    "userdata.img": 4509696,
+    "misc.img": 49152,
+    "update.img": 168841802
+  },
+  "image_inspection": "PASS",
+  "board_boot": "not tested",
+  "date": "2026-11-16",
+  "build_command": "/home/ww/codings/ZenithTerminal/tools/zero3e-build all",
+  "build_exit_code": 0,
+  "build_log": "/home/ww/codings/ZenithTerminal/build/zero3e-firmware/logs/20261116-232650-all.log",
+  "patch_series": "/home/ww/codings/ZenithTerminal/patches/radxa-zero3e/series.tsv"
+}

@@ -95,7 +95,23 @@ SDK 的 `.setup/toolchain-build.log`。
 可原地用于应用开发，尚未打包成可搬移 SDK。已在同一容器中构建 SDK 的
 libdrm 2.4.120（沿用原补丁及依赖），并安装到 sysroot 和 target；日志位于
 `.setup/libdrm-build.log`，应用接入见 [DRM 探测指南](DRM_PROBE.md)。
-SDK 的内核、固件及 MPP 目标库尚未编译，不要求先构建整套包含
-Chromium/Weston 的默认 rootfs。
+截至 2026-11-12，SDK 的内核、固件及 MPP 目标库尚未编译；当时只构建应用需要的
+工具链与 libdrm，没有构建包含 Chromium/Weston 的默认 rootfs。
+
+## ZERO 3E 第一版开发固件（2026-11-16）
+
+已新增 ZenithTerminal 专用板级/Buildroot 配置，完成 U-Boot、原版 Radxa 6.1.84
+内核及 DTB、精简 ext4 rootfs、MPP/RGA、recovery 和 `update.img` 构建。
+主 rootfs 位于 `buildroot/output/rockchip_rk3566_zenith/`，原工具链输出保留。
+
+SDK 的所有本轮源码修改由本仓库 `patches/radxa-zero3e/` 管理，使用
+`tools/zero3e-sdk` 检查/应用/导出，`tools/zero3e-build all` 执行完整构建。
+板端默认 `192.168.77.3/24`，root 空密码，Dropbear 允许免密码、免公钥登录；
+仅用于隔离直连开发网络。
+
+[开发固件指南](ZERO3E_BRINGUP.md) 包含构建、镜像检查、串口与 SSH 使用方法。
+当前已通过实际镜像检查及 ARM SSH 服务的 QEMU 免认证登录验证。
+[Linux SD 制卡指南](ZERO3E_SD_CARD.md) 提供 raw 整盘镜像生成与确认后写卡入口，
+实体写卡和实板启动仍需确认目标设备后执行。
 
 VKMS 双 plane/writeback 桌面预览计划见 `DEVELOPMENT_PLAN.md`。

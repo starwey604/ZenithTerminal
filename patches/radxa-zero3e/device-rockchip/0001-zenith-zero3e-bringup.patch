@@ -1,0 +1,17 @@
+diff --git a/.chips/rk3566_rk3568/rockchip_rk3566_radxa_zero_3e_zenith_defconfig b/.chips/rk3566_rk3568/rockchip_rk3566_radxa_zero_3e_zenith_defconfig
+new file mode 100644
+index 0000000..7e20e42
+--- /dev/null
++++ b/.chips/rk3566_rk3568/rockchip_rk3566_radxa_zero_3e_zenith_defconfig
+@@ -0,0 +1,11 @@
++# ZenithTerminal first-board bring-up; preserve Radxa's kernel and FIT boot path.
++RK_KERNEL_DTS_NAME="rk3566-radxa-zero-3e"
++RK_PARAMETER="parameter-buildroot-fit.txt"
++RK_USE_FIT_IMG=y
++RK_BUILDROOT_BASE_CFG="rk3566_zenith"
++RK_ROOTFS_HOSTNAME_CUSTOM=y
++RK_ROOTFS_HOSTNAME="zenith-zero3e"
++# RK_WIFIBT is not set
++# RK_USB_GADGET is not set
++# RK_ROOTFS_INPUT_EVENT_DAEMON is not set
++# RK_ROOTFS_ASYNC_COMMIT is not set

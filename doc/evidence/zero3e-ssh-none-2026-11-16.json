@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-16",
+  "image": "/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4/output/firmware/rootfs.img",
+  "test": "AArch64 Dropbear extracted from the image, QEMU user mode, disposable chroot, localhost-only listener",
+  "client_authentication": {
+    "PreferredAuthentications": "none",
+    "PubkeyAuthentication": "no",
+    "PasswordAuthentication": "no",
+    "KbdInteractiveAuthentication": "no",
+    "BatchMode": "yes"
+  },
+  "observed_authentication": "none",
+  "remote_command_output": "SSH_NONE_AUTH_PASS",
+  "result": "PASS",
+  "board_boot": "not tested",
+  "patch_validation": "All five patches applied to fresh clones at their pinned baselines; repeat application skipped; real SDK indexes unchanged.",
+  "patch_tool_unit_tests": "8 passed",
+  "sdk_hook_regression": "build hook failure returned 23; init hook failure returned 24",
+  "boot_fit_dtb": {
+    "compatible": [
+      "radxa,zero-3e",
+      "radxa,zero3",
+      "rockchip,rk3566"
+    ],
+    "bootargs": "earlycon=uart8250,mmio32,0xfe660000 console=ttyFIQ0 root=PARTUUID=614e0000-0000 rw rootwait",
+    "gmac1_status": "okay"
+  },
+  "overlay_gating": "PASS: vendor-exported quoted and unquoted Zenith defconfigs; vendor and recovery configs unchanged"
+}

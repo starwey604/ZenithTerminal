@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""Check and apply the ZenithTerminal-owned patch stack without SDK commits."""
+
+import argparse
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SERIES = ROOT / "patches/radxa-zero3e/series.tsv"
+
+
+def git(repo, *args, env=None, check=True):
+    return subprocess.run(["git", "-C", str(repo), *args], env=env,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          check=check)
+
+
+def inspect(sdk, series):
+    plans = []
+    for line in series.read_text().splitlines():
+        if not line or line.startswith("#"):
+            continue
+        project, baseline, patch_dir = line.split("|")
+        repo = sdk / project
+        head = git(repo, "rev-parse", "HEAD").stdout.decode().strip()
+        if head != baseline:
+            raise ValueError(f"{project}: HEAD {head} differs from baseline {baseline}")
+        patches = sorted((series.parent / patch_dir).glob("*.patch"))
+        if not patches:
+            raise ValueError(f"{project}: no patches in {patch_dir}")
+        # A private index validates dependent patches in order, leaving the SDK
+        # index and worktree untouched. It also describes the exact final files.
+        with tempfile.TemporaryDirectory(prefix="zt-sdk-index-") as tmp:
+            env = dict(os.environ, GIT_INDEX_FILE=str(Path(tmp) / "index"))
+            git(repo, "read-tree", baseline, env=env)
+            for patch in patches:
+                git(repo, "apply", "--cached", str(patch), env=env)
+            paths = git(repo, "diff", "--cached", "--name-only", "-z",
+                        baseline, env=env).stdout.decode().split("\0")[:-1]
+            if not paths:
+                raise ValueError(f"{project}: empty patch stack")
+            # Never overwrite staged edits, even if their contents happen to
+            # match our patch. Unrelated SDK edits are not part of this stack.
+            if git(repo, "diff", "--cached", "--quiet", baseline, "--", *paths,
+                   check=False).returncode:
+                raise ValueError(f"{project}: staged edits overlap patch paths")
+            applied = git(repo, "diff", "--quiet", "--", *paths,
+                          env=env, check=False).returncode == 0
+            pristine = git(repo, "diff", "--quiet", baseline, "--", *paths,
+                           check=False).returncode == 0
+            for path in paths:
+                exists_at_base = git(repo, "cat-file", "-e", f"{baseline}:{path}",
+                                     check=False).returncode == 0
+                if not exists_at_base and os.path.lexists(repo / path):
+                    pristine = False
+            if not applied and not pristine:
+                raise ValueError(f"{project}: partial stack or local edits overlap patch paths; "
+                                 "inspect them before applying")
+        plans.append((repo, patches, "applied" if applied else "ready"))
+    return plans
+
+
+def export_patch(sdk, series, project, paths, output):
+    """Export explicitly selected SDK files, including new files, from baseline."""
+    entries = [line.split("|") for line in series.read_text().splitlines()
+               if line and not line.startswith("#")]
+    matches = [entry for entry in entries if entry[0] == project]
+    if len(matches) != 1:
+        raise ValueError(f"unknown SDK project: {project}")
+    baseline = matches[0][1]
+    repo = sdk / project
+    if git(repo, "rev-parse", "HEAD").stdout.decode().strip() != baseline:
+        raise ValueError(f"{project}: export requires the pinned baseline HEAD")
+    for path in paths:
+        if Path(path).is_absolute() or ".." in Path(path).parts or path.startswith(":"):
+            raise ValueError(f"path must be relative to {project}: {path}")
+    with tempfile.TemporaryDirectory(prefix="zt-sdk-export-") as tmp:
+        env = dict(os.environ, GIT_INDEX_FILE=str(Path(tmp) / "index"))
+        git(repo, "read-tree", baseline, env=env)
+        git(repo, "add", "--all", "--", *paths, env=env)
+        patch = git(repo, "diff", "--cached", "--binary", "--no-ext-diff",
+                    baseline, env=env).stdout
+    if not patch:
+        raise ValueError("selected paths have no changes")
+    # Require a new destination so reviewed patch stacks cannot be overwritten.
+    with output.open("xb") as dest:
+        dest.write(patch)
+    print(f"Exported {project}: {output}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("command", choices=("check", "status", "apply", "export"))
+    parser.add_argument("sdk", type=Path)
+    parser.add_argument("--project", help="SDK project to export, e.g. buildroot")
+    parser.add_argument("--path", action="append", help="explicit export path, repeatable")
+    parser.add_argument("--output", type=Path, help="new patch file to create")
+    args = parser.parse_args()
+    sdk = args.sdk.resolve()
+    if not (sdk / ".repo").is_dir():
+        parser.error(f"not a repo SDK checkout: {sdk}")
+    if args.command == "export" and not (args.project and args.path and args.output):
+        parser.error("export requires --project, --path and --output")
+    if args.command != "export" and (args.project or args.path or args.output):
+        parser.error("--project, --path and --output are only for export")
+    try:
+        if args.command == "export":
+            export_patch(sdk, SERIES, args.project, args.path, args.output)
+            return 0
+        # Preflight every project before writing to any of them.
+        plans = inspect(sdk, SERIES)
+        for repo, patches, state in plans:
+            if args.command == "apply" and state == "ready":
+                for patch in patches:
+                    git(repo, "apply", str(patch))
+                state = "applied"
+            print(f"{repo.relative_to(sdk)}: {state} ({len(patches)} patches)")
+    except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+        detail = exc.stderr.decode().strip() if isinstance(exc, subprocess.CalledProcessError) else str(exc)
+        print(f"error: {detail}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

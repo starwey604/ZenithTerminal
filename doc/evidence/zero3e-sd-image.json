@@ -1,0 +1,124 @@
+{
+  "image": "/home/ww/codings/ZenithTerminal/build/zero3e-sd/zenith-zero3e-sd.img",
+  "disk_bytes": 7516192768,
+  "sector_bytes": 512,
+  "idb_lba": 64,
+  "idb_bytes": 319488,
+  "partitions": [
+    {
+      "name": "uboot",
+      "start": 16384,
+      "size": 8192,
+      "uuid": "20c56143-289d-49ae-a759-f158dacd40fa",
+      "type": "0fc63daf-8483-4772-8e79-3d69d8477de4"
+    },
+    {
+      "name": "misc",
+      "start": 24576,
+      "size": 8192,
+      "uuid": "52cc0e5d-e0eb-4a69-b0b1-5a7facc2fede",
+      "type": "0fc63daf-8483-4772-8e79-3d69d8477de4"
+    },
+    {
+      "name": "boot",
+      "start": 32768,
+      "size": 131072,
+      "uuid": "f3afb3eb-f1ca-4755-bfd7-9560e2f74d48",
+      "type": "0fc63daf-8483-4772-8e79-3d69d8477de4"
+    },
+    {
+      "name": "recovery",
+      "start": 163840,
+      "size": 262144,
+      "uuid": "15b658de-6abc-4943-a823-081469218261",
+      "type": "0fc63daf-8483-4772-8e79-3d69d8477de4"
+    },
+    {
+      "name": "backup",
+      "start": 425984,
+      "size": 65536,
+      "uuid": "a0114c7d-ebea-422a-9779-0bb29ea165e2",
+      "type": "0fc63daf-8483-4772-8e79-3d69d8477de4"
+    },
+    {
+      "name": "rootfs",
+      "start": 491520,
+      "size": 12582912,
+      "uuid": "614e0000-0000-4b53-8000-1d28000054a9",
+      "type": "0fc63daf-8483-4772-8e79-3d69d8477de4"
+    },
+    {
+      "name": "oem",
+      "start": 13074432,
+      "size": 262144,
+      "uuid": "37494606-6c04-40fa-a960-3c68992e60be",
+      "type": "0fc63daf-8483-4772-8e79-3d69d8477de4"
+    },
+    {
+      "name": "userdata",
+      "start": 13336576,
+      "size": 1343455,
+      "uuid": "968060a9-b790-4603-84d1-d651f7bd48bd",
+      "type": "0fc63daf-8483-4772-8e79-3d69d8477de4"
+    }
+  ],
+  "validation": "PASS",
+  "board_boot": "not tested",
+  "payload_comparison": "PASS (IDB and every included partition image)",
+  "payloads": [
+    {
+      "source": "/home/ww/codings/ZenithTerminal/build/zero3e-sd/zenith-zero3e-sd.idbloader.img",
+      "offset": 32768,
+      "bytes": 319488
+    },
+    {
+      "source": "/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4/output/firmware/uboot.img",
+      "offset": 8388608,
+      "bytes": 4194304
+    },
+    {
+      "source": "/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4/output/firmware/misc.img",
+      "offset": 12582912,
+      "bytes": 49152
+    },
+    {
+      "source": "/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4/output/firmware/boot.img",
+      "offset": 16777216,
+      "bytes": 40481280
+    },
+    {
+      "source": "/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4/output/firmware/recovery.img",
+      "offset": 83886080,
+      "bytes": 49751040
+    },
+    {
+      "source": "/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4/output/firmware/rootfs.img",
+      "offset": 251658240,
+      "bytes": 50081792
+    },
+    {
+      "source": "/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4/output/firmware/oem.img",
+      "offset": 6694109184,
+      "bytes": 18800640
+    },
+    {
+      "source": "/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4/output/firmware/userdata.img",
+      "offset": 6828326912,
+      "bytes": 4509696
+    }
+  ],
+  "sdk": "/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4",
+  "idb_file": "/home/ww/codings/ZenithTerminal/build/zero3e-sd/zenith-zero3e-sd.idbloader.img",
+  "allocated_bytes": 168235008,
+  "physical_write": "not performed; user must confirm the target device first",
+  "sd_tests": "11 passed (all tests use regular files / mocked hardware identity only)",
+  "native_gpt_verification": "sfdisk --verify: No errors detected",
+  "larger_card_simulation": "7 GiB raw image cloned to an 8 GiB regular file: GPT relocated and only userdata extended; PASS",
+  "production_write_guards": "No writable open without root + TTY + exact-device confirmation; mounted/swap/partition/loop/mapper/readonly/undersized/4K-sector targets rejected",
+  "commands": {
+    "build": "/home/ww/codings/ZenithTerminal/tools/zero3e-sd build",
+    "check": "/home/ww/codings/ZenithTerminal/tools/zero3e-sd check /home/ww/codings/ZenithTerminal/build/zero3e-sd/zenith-zero3e-sd.img"
+  },
+  "device_confirmation": "required before physical write; no SD card device currently present in the read-only lsblk inventory",
+  "writer_pipeline_simulation": "PASS: compact regular-file fixture, complete transfer/readback/GPT relocation/userdata expansion; hardware identity and ioctl mocked"
+}

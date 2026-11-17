@@ -1,0 +1,88 @@
+diff --git a/board/rockchip/common/overlays/90-zenith-zero3e/prepare.sh b/board/rockchip/common/overlays/90-zenith-zero3e/prepare.sh
+new file mode 100755
+index 0000000000..091d6c4d94
+--- /dev/null
++++ b/board/rockchip/common/overlays/90-zenith-zero3e/prepare.sh
+@@ -0,0 +1,11 @@
++#!/bin/bash -e
++# Do not affect the vendor rootfs or recovery configurations.
++# The vendor post-build exporter preserves literal quotes around this value.
++DEFCONFIG=${BR2_DEFCONFIG//\"/}
++case "$DEFCONFIG" in
++    */rockchip_rk3566_zenith_defconfig) ;;
++    *) exit 1 ;;
++esac
++# rkscript installs this DRM-mutating service unconditionally. Keep direct KMS
++# owned by ZenithTerminal instead; SDK post-rootfs also disables its own hook.
++rm -f "$TARGET_DIR/etc/init.d/S05async-commit.sh"
+diff --git a/board/rockchip/zenith-zero3e/etc/default/dropbear b/board/rockchip/zenith-zero3e/etc/default/dropbear
+new file mode 100644
+index 0000000000..dedbb8aa81
+--- /dev/null
++++ b/board/rockchip/zenith-zero3e/etc/default/dropbear
+@@ -0,0 +1,3 @@
++# Isolated development network only: anyone reachable can log in as root.
++# -B allows the empty root password, including SSH none authentication.
++DROPBEAR_ARGS="-B"
+diff --git a/board/rockchip/zenith-zero3e/etc/network/interfaces b/board/rockchip/zenith-zero3e/etc/network/interfaces
+new file mode 100644
+index 0000000000..d14ecca656
+--- /dev/null
++++ b/board/rockchip/zenith-zero3e/etc/network/interfaces
+@@ -0,0 +1,8 @@
++# Dedicated direct-cable development link. No default gateway or DNS.
++auto lo
++iface lo inet loopback
++
++auto eth0
++iface eth0 inet static
++    address 192.168.77.3
++    netmask 255.255.255.0
+diff --git a/configs/rockchip_rk3566_zenith_defconfig b/configs/rockchip_rk3566_zenith_defconfig
+new file mode 100644
+index 0000000000..57c2944aae
+--- /dev/null
++++ b/configs/rockchip_rk3566_zenith_defconfig
+@@ -0,0 +1,42 @@
++# ZenithTerminal ZERO 3E bring-up: vendor kernel, direct DRM/MPP, wired SSH.
++#include "base/base.config"
++#include "chips/rk3566_rk3568_aarch64.config"
++#include "multimedia/mpp.config"
++
++BR2_JLEVEL=6
++BR2_INIT_BUSYBOX=y
++BR2_SYSTEM_BIN_SH_BUSYBOX=y
++BR2_TARGET_SERIAL_SHELL_SH=y
++BR2_TARGET_GENERIC_HOSTNAME="zenith-zero3e"
++BR2_TARGET_GENERIC_ISSUE="ZenithTerminal ZERO 3E development system"
++# Isolated development link: root has no password; Dropbear allows none auth.
++BR2_TARGET_ENABLE_ROOT_LOGIN=y
++BR2_TARGET_GENERIC_ROOT_PASSWD=""
++BR2_TARGET_LOCALTIME="Asia/Shanghai"
++BR2_ROOTFS_OVERLAY="board/rockchip/common/base board/rockchip/zenith-zero3e"
++
++BR2_PACKAGE_DROPBEAR=y
++BR2_PACKAGE_DROPBEAR_DISABLE_REVERSEDNS=y
++BR2_PACKAGE_IPROUTE2=y
++BR2_PACKAGE_ETHTOOL=y
++BR2_PACKAGE_IPERF3=y
++BR2_PACKAGE_STRACE=y
++BR2_PACKAGE_PROCPS_NG=y
++BR2_PACKAGE_LRZSZ=y
++BR2_PACKAGE_LIBDRM=y
++BR2_PACKAGE_LIBDRM_HAS_ATOMIC=y
++BR2_PACKAGE_LIBDRM_INSTALL_TESTS=y
++BR2_PACKAGE_ROCKCHIP_MPP_TESTS=y
++
++# No desktop, camera/audio/network stacks or USB gadget services in this image.
++# BR2_PACKAGE_ANDROID_ADBD is not set
++# BR2_PACKAGE_INPUT_EVENT_DAEMON is not set
++# BR2_PACKAGE_PM_UTILS is not set
++# BR2_PACKAGE_USBMOUNT is not set
++# BR2_PACKAGE_RKSCRIPT_USB is not set
++# BR2_PACKAGE_HOST_NTFS_3G is not set
++# BR2_PACKAGE_HOST_PYTHON3_SSL is not set
++# Ext4 is the SDK boot rootfs; recovery retains its separate cpio image.
++# BR2_TARGET_ROOTFS_CPIO is not set
++# BR2_TARGET_ROOTFS_SQUASHFS is not set
++# BR2_TARGET_ROOTFS_TAR is not set

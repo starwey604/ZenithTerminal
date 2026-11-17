@@ -1,0 +1,30 @@
+diff --git a/common/scripts/kernel-helper b/common/scripts/kernel-helper
+index a0e7f7b..974a2ed 100644
+--- a/common/scripts/kernel-helper
++++ b/common/scripts/kernel-helper
+@@ -21,7 +21,7 @@ fi
+ export RK_KERNEL_TOOLCHAIN="$(get_toolchain kernel "$RK_KERNEL_ARCH")"
+ [ "$RK_KERNEL_TOOLCHAIN" ] || exit 1
+ 
+-export KMAKE="make -C "$RK_SDK_DIR/kernel/" -j$(( $(nproc) + 1 )) \
++export KMAKE="make -C "$RK_SDK_DIR/kernel/" -j${RK_BUILD_JOBS:-$(( $(nproc) + 1 ))} \
+ 	CROSS_COMPILE=$RK_KERNEL_TOOLCHAIN ARCH=$RK_KERNEL_ARCH"
+ 
+ if [ -z "$DRY_RUN" ] && [ "$RK_SUDO_ROOT" ]; then
+diff --git a/common/scripts/mk-buildroot.sh b/common/scripts/mk-buildroot.sh
+index 376dc2a..3fc6994 100755
+--- a/common/scripts/mk-buildroot.sh
++++ b/common/scripts/mk-buildroot.sh
+@@ -96,7 +96,11 @@ esac
+ unset LD_LIBRARY_PATH
+ 
+ touch "$BUILDROOT_OUTPUT_DIR/.stamp_build_start"
+-if ! "$BUILDROOT_DIR"/utils/brmake -C "$BUILDROOT_DIR" O="$BUILDROOT_OUTPUT_DIR"; then
++BUILDROOT_MAKE_ARGS=()
++if [ "$RK_BUILD_JOBS" ]; then
++	BUILDROOT_MAKE_ARGS+=("BR2_JLEVEL=$RK_BUILD_JOBS")
++fi
++if ! "$BUILDROOT_DIR"/utils/brmake -C "$BUILDROOT_DIR" O="$BUILDROOT_OUTPUT_DIR" "${BUILDROOT_MAKE_ARGS[@]}"; then
+ 	error "Failed to build $BUILDROOT_BOARD:"
+ 	tail -n 100 "$LOG_FILE"
+ 	error "Please check details in $LOG_FILE"

@@ -1,0 +1,13 @@
+diff --git a/make.sh b/make.sh
+index a4a537b..f3b1a20 100755
+--- a/make.sh
++++ b/make.sh
+@@ -6,7 +6,7 @@
+ #
+ 
+ set -e
+-JOB=`sed -n "N;/processor/p" /proc/cpuinfo|wc -l`
++JOB=${RK_BUILD_JOBS:-$(sed -n "N;/processor/p" /proc/cpuinfo | wc -l)}
+ SUPPORT_LIST=`ls configs/*[r,p][x,v,k][0-9][0-9]*_defconfig`
+ CMD_ARGS=$1
+ 

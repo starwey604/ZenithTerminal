@@ -1,0 +1,43 @@
+#!/bin/bash
+# Run vendor build entry points in the established Ubuntu 22.04 container.
+set -euo pipefail
+ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+SDK=${ZT_SDK_ROOT:-/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4}
+CONTAINER=${ZT_SDK_CONTAINER:-zt-sdk-ubuntu2204}
+JOBS=${ZT_SDK_JOBS:-6}
+case ${1:-all} in
+    configure|all|kernel|rootfs|recovery|firmware|updateimg) ACTION=${1:-all} ;;
+    *) echo "usage: $0 [configure|all|kernel|rootfs|recovery|firmware|updateimg]" >&2; exit 2 ;;
+esac
+[[ $JOBS =~ ^[1-9][0-9]*$ ]] || { echo 'ZT_SDK_JOBS must be positive' >&2; exit 2; }
+SDK=$(realpath "$SDK")
+"$ROOT/tools/zero3e-sdk" apply "$SDK"
+mkdir -p "$ROOT/build/zero3e-firmware/logs"
+LOG="$ROOT/build/zero3e-firmware/logs/$(date +%Y%m%d-%H%M%S)-$ACTION.log"
+echo "Log: $LOG"
+# Also bound CPU affinity for auxiliary tools that derive jobs from nproc.
+CPUS=$(python3 -c 'import os,sys; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:int(sys.argv[1])])))' "$JOBS")
+distrobox enter --name "$CONTAINER" --no-tty -- \
+    taskset -c "$CPUS" bash -c '
+        set -euo pipefail
+        export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        export RK_BUILD_JOBS="$3"
+        unset LD_LIBRARY_PATH
+        cd "$1"
+        board=rockchip_rk3566_radxa_zero_3e_zenith_defconfig
+        ./build.sh "$board"
+        grep -qx '\''RK_BUILDROOT_BASE_CFG="rk3566_zenith"'\'' output/.config
+        if [[ $2 == configure ]]; then
+            make -C buildroot O="$1/buildroot/output/rockchip_rk3566_zenith" \
+                rockchip_rk3566_zenith_defconfig
+        else
+            ./build.sh "$2"
+        fi
+    ' zero3e-build "$SDK" "$ACTION" "$JOBS" 2>&1 | tee "$LOG"
+if [[ $ACTION == all || $ACTION == firmware || $ACTION == updateimg ]]; then
+    test -s "$SDK/output/firmware/update.img"
+    distrobox enter --name "$CONTAINER" --no-tty -- \
+        python3 "$ROOT/tools/check-zero3e-firmware.py" --sdk-root "$SDK" \
+        --report "$ROOT/build/zero3e-firmware/report.json" 2>&1 | tee -a "$LOG"
+    echo "Firmware: $SDK/output/firmware/update.img"
+fi

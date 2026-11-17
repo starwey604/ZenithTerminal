@@ -1,0 +1,24 @@
+diff --git a/common/scripts/build.sh b/common/scripts/build.sh
+index 6e21bfd..60d008e 100755
+--- a/common/scripts/build.sh
++++ b/common/scripts/build.sh
+@@ -285,7 +285,9 @@ run_hooks()
+ 			# Ignore unrelated hooks
+ 			hook_check "$hook" "$1" "$2" || continue
+ 
+-			if ! "$hook" $@; then
++			if "$hook" $@; then
++				:
++			else
+ 				HOOK_RET=$?
+ 				err_handler $HOOK_RET \
+ 					"${FUNCNAME[0]} $*" "$hook $*"
+@@ -301,7 +303,7 @@ run_build_hooks()
+ 	# Don't log these stages (either interactive or with useless logs)
+ 	case "$1" in
+ 		init | pre-build | make-* | usage | parse-cmds)
+-			run_hooks "$RK_BUILD_HOOK_DIR" $@ || true
++			run_hooks "$RK_BUILD_HOOK_DIR" $@
+ 			return 0
+ 			;;
+ 	esac

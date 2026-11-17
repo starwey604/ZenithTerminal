@@ -13,6 +13,8 @@ ctest --preset native
 
 - [SDK 接入与双平台构建](doc/SDK_INTEGRATION.md)
 - [Radxa SDK 源码准备及固定版本](doc/SDK_SETUP.md)
+- [ZERO 3E 开发固件：完整构建、静态 IP 与串口/SSH](doc/ZERO3E_BRINGUP.md)
+- [Linux SD 制卡：生成整盘镜像、检查与确认后写卡](doc/ZERO3E_SD_CARD.md)
 - [开发计划：VKMS 双 plane 桌面预览](doc/DEVELOPMENT_PLAN.md)
 
 程序位于 `build/native/bin/ZenithTerminal`。运行 `--self-check` 无需窗口、

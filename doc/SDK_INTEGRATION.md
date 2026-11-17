@@ -7,8 +7,8 @@ SDL3 ARGB 离屏绘图，以及无需连接 broker 的 Paho MQTT C/C++ 客户端
 ## 本机运行
 
 宿主机需要 Clang、LLD、LLVM 静态库工具、CMake ≥ 3.24、Ninja、Git，以及
-C/C++ 标准库开发文件。应用构建在宿主机运行，Ubuntu 容器仅用于构建 BSP
-工具链。依赖源码通过 Git 子模块固定，不使用发行版的 protobuf/Paho/SDL。
+C/C++ 标准库开发文件。应用构建在宿主机运行，Ubuntu 容器用于构建 BSP
+工具链与固件。依赖源码通过 Git 子模块固定，不使用发行版的 protobuf/Paho/SDL。
 
 ```bash
 cd /home/ww/codings/ZenithTerminal
@@ -137,7 +137,8 @@ Wayland/X11 窗口和 OpenGL writeback 预览；板端 preview=OFF 不引入这�
 
 日志：`build/native/test.log`、`build/rk3566-clang/elf-check.log`、
 `build/rk3566-clang/qemu-test.log`。两套构建日志分别在对应目录的 `build.log`。
-目标板尚未到货，实板运行待验证；MPP 和业务 UI 仍按后续计划推进。
+以上为 2026-11-12 的验证记录，当时目标板尚未到货。现在已完成第一版开发固件
+构建，见 [上板开发指南](ZERO3E_BRINGUP.md)；实板运行和 MPP 应用后端仍待验证/实现。
 
 ## 可选 DRM 探测模块
 

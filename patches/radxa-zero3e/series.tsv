@@ -1,0 +1,4 @@
+# SDK repo path|pinned baseline|patch directory (relative to this file)
+buildroot|6982a513fe9405d133d62528061a99b386d68c53|buildroot
+device/rockchip|d064c6c075f3b93ef41ed999993fd8d01eed9cfa|device-rockchip
+u-boot|840f624d1d6838fce87bd772128b08e649c7b152|u-boot
