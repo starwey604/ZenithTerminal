@@ -16,6 +16,16 @@ SDK=/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4
 有其他修改、只应用了一部分补丁或存在同名未跟踪文件时会停止。
 其他路径的本地修改不被覆盖，也不自动收进补丁。
 
+已经应用第一版（`device/rockchip` 只有 0001–0003）的 SDK，在确认板级文件没有
+自行修改后，可单独补上 0004，再正常应用整套补丁。干净 SDK 不需要这一步：
+
+```bash
+patch="$PWD/patches/radxa-zero3e/device-rockchip/0004-select-zero3e-slim-kernel-fragment.patch"
+git -C "$SDK/device/rockchip" apply --check "$patch" &&
+git -C "$SDK/device/rockchip" apply "$patch" &&
+./tools/zero3e-sdk apply "$SDK"
+```
+
 ## 当前补丁
 
 - `buildroot/0001-*`：新增 `rockchip_rk3566_zenith_defconfig`、静态网络与
@@ -28,9 +38,12 @@ SDK=/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4
 - `u-boot/0001-*`：允许通过 `RK_BUILD_JOBS` 限定并发；未设置时保留原行为。
 - `device-rockchip/0003-*`：让内核、主 rootfs 和 recovery 构建使用相同的
   `RK_BUILD_JOBS` 并发限制；未设置时保留厂商默认行为。
+- `device-rockchip/0004-*`：只为 ZERO 3E Zenith 板级配置设置 `RK_KERNEL_CFG_FRAGMENTS`。
+- `kernel-6.1/0001-*`：新增这个配置片段，关闭 Wi-Fi、蓝牙、CAN、TV/DVB、广播/SDR 和
+  SATA/NVMe；保留 HDMI、USB 主机/键鼠、MPP 和 recovery 所需的 USB 功能。
 
-内核源码和内核配置本轮不裁剪。Radxa 源码覆盖清单继续由
-`sdk/radxa-zero3e/local-manifest.xml` 管理，提交固定见 `doc/SDK_SETUP.md`。
+厂商 defconfig、设备树和内核源码未改动。Radxa 源码覆盖清单继续由
+`sdk/radxa-zero3e/local-manifest.xml` 管理，内核补丁基线与固定源码清单一致。
 
 ## 将后续 SDK 修改带回仓库
 

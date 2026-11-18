@@ -1,8 +1,7 @@
-# 构建 ZERO 3E 第一版开发固件
+# 构建 ZERO 3E 开发固件
 
-目标是一套可重建的 SD 启动开发系统：原版 Radxa 内核、精简 Buildroot 用户空间、
-串口恢复 shell，以及 `192.168.77.3/24` 上的 SSH。此阶段生成 Rockchip 固件包，
-不执行 SD 卡烧录或上板操作。
+开发固件使用 Radxa 6.1 内核和 ZERO 3E 专用裁剪片段，保留 HDMI、USB 键鼠、
+MPP 和 recovery。精简 Buildroot 提供串口恢复 shell 和 `192.168.77.3/24` 上的 SSH。
 
 ## 一条入口构建完整固件
 
@@ -21,6 +20,9 @@ cd /home/ww/codings/ZenithTerminal
 默认 SDK 为 `/home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4`。
 可用 `ZT_SDK_ROOT`、`ZT_SDK_CONTAINER`、`ZT_SDK_JOBS` 覆盖路径、容器和并发，
 默认并发为 6，通过 `RK_BUILD_JOBS` 统一传递给 U-Boot、内核和 Buildroot。
+若缓存齐全但 SDK 的下载镜像连通性探测失败，可用
+`RK_NETWORK_CHECK= ./tools/zero3e-build all`，在 SDK 提示时按回车。
+该设置仅让预检查失败时继续，实际下载失败仍会中止构建。
 
 首次整套构建还需要补齐容器依赖（在宿主机执行）：
 
@@ -43,7 +45,7 @@ Python 2。SDK 的生成工具也必须在该 Ubuntu 容器内编译。此次迁
 | 板级配置 | `rockchip_rk3566_radxa_zero_3e_zenith_defconfig` |
 | Buildroot | `rockchip_rk3566_zenith_defconfig` |
 | Buildroot 输出 | `buildroot/output/rockchip_rk3566_zenith/` |
-| 内核 | 原有 `rockchip_linux_defconfig` 及厂商自动选择的片段 |
+| 内核 | `rockchip_linux_defconfig` + `rk3566_zenith_zero3e_slim.config`；主系统和 recovery 共用 |
 | 设备树 | `rk3566-radxa-zero-3e.dts` |
 | 启动格式 | 厂商 FIT，保留 recovery |
 | 固件目录 | `output/firmware/`，SDK 的 `rockdev/` 链接到此处 |
@@ -52,11 +54,11 @@ Python 2。SDK 的生成工具也必须在该 Ubuntu 容器内编译。此次迁
 新系统开发优先显式指定新固件的 `buildroot/output/rockchip_rk3566_zenith/host`，
 避免以后两套配置演进后误用 sysroot。
 
-首版保留 glibc/C++、BusyBox init、eudev、Dropbear、iproute2、ethtool、iperf3、
+主系统保留 glibc/C++、BusyBox init、eudev、Dropbear、iproute2、ethtool、iperf3、
 strace、procps、lrzsz、libdrm/modetest、MPP 测试与 RGA。去掉 Chromium/Weston、
 Qt、摄像头/GStreamer、音频、无线用户空间和 USB gadget 服务，只生成 ext4 主 rootfs。
 不启动会修改 DRM 状态的 async-commit 服务，给应用保留直接 KMS 控制权。
-内核驱动本轮仍保留。镜像暂不部署或自启动 ZenithTerminal，应用上板验证在下一阶段进行。
+镜像不预装或自启动 ZenithTerminal；需要时在启动后通过 SSH 部署。
 
 ```bash
 # 只生成配置；或修复失败原因后重跑对应阶段
@@ -110,9 +112,9 @@ ssh root@192.168.77.3
 **任何能连接 SSH 端口的人都能获得 root 权限。** 此配置仅用于隔离的直连开发网络，
 不要把该镜像接入公共或不受信任的网络。串口仍保留厂商的直接 root 恢复 shell。
 
-板端验收顺序：三次冷启动进入串口 shell → 检查网卡链路和地址 →
-免认证 SSH 登录与重启恢复 → 运行 `ZenithTerminal --self-check` → 采集 DRM 探测结果。
-显示合成、MPP 后端和轻量内核裁剪在此之后推进。
+每版固件上板后，先验串口、SD 启动和直连 SSH，再部署程序运行
+`ZenithTerminal --self-check`。显示用 DRM 探测和实际出图验收，MPP 用短片实际解码；
+键鼠通过 USB Hub 插拔并检查输入事件，recovery 检查启动和维护介质识别。
 
 补丁维护、应用、导出及冲突处理见 [SDK 补丁说明](../patches/radxa-zero3e/README.md)。
 
@@ -131,4 +133,38 @@ ssh root@192.168.77.3
 构建与镜像记录：`doc/evidence/zero3e-firmware-2026-11-16.json`。
 SSH 与补丁验证记录：`doc/evidence/zero3e-ssh-none-2026-11-16.json`。
 Linux 整盘镜像生成和离线检查已完成，见 [SD 制卡指南](ZERO3E_SD_CARD.md)。
-尚待确认目标设备后实际写卡，以及实板冷启动和有线 SSH 验收。
+
+## 2026-11-18 实板结果
+
+首版完成实体 SD 卡烧录、读回校验及两轮串口启动。从隔离直连关闭密码、公钥及交互认证后，
+OpenSSH 确认以 `none` 登录 `root@192.168.77.3`；板端返回 `uid=0`、主机名
+`zenith-zero3e` 和内核 `6.1.84`。三次冷启动和网线拔插恢复验收尚未完成。
+
+应用使用 `rockchip_rk3566_zenith/host` 交叉编译，并通过 SSH 安装到板端
+`/usr/bin/ZenithTerminal`；没有重启或重刷。`ZenithTerminal --self-check` 在 RK3566
+实板退出码为 `0`，线程/时钟、protobuf、SDL3 离屏绘制及 Paho MQTT 离线客户端均通过。
+应用未设为开机自启动，本次自检不接管显示，也不测试 MPP。
+
+## 2026-11-18 内核裁剪版
+
+关闭 Wi-Fi、蓝牙、CAN、TV/DVB、广播/SDR 和 SATA/NVMe。保留 HDMI（含音频）、
+USB Host/HID/evdev、MPP/RGA、SD/eMMC、串口和有线网。主系统仍不启动 USB gadget
+服务；共用内核保留 gadget/FunctionFS 和 USB 存储，供 recovery 的 ADB 和 U 盘使用。
+
+| 产物 | 首版（MiB） | 裁剪版（MiB） | 减少（MiB） |
+| --- | ---: | ---: | ---: |
+| 内核 `Image` | 38.26 | 35.05 | 3.21 |
+| `boot.img` | 38.61 | 35.40 | 3.21 |
+| `recovery.img` | 47.45 | 44.24 | 3.21 |
+| `rootfs.img` | 47.76 | 47.15 | 0.61 |
+| `update.img` | 161.02 | 154.00 | 7.02 |
+| raw SD（本机磁盘占用） | 160.44 | 153.42 | 7.02 |
+
+Buildroot 配置未改动，`rootfs.img` 是重新生成的 ext4 镜像。raw SD 的逻辑大小仍为
+7 GiB，分区边界和 rootfs UUID 不变。
+
+产物位于 `build/zero3e-kernel-slim/`：`firmware/update.img` 是完整 Rockchip 升级包，
+`zenith-zero3e-slim-sd.img` 是可写卡的整盘镜像，`comparison.json` 记录精确字节数。
+从实际 FIT 提取核对了内核配置；boot 和 recovery 使用相同内核，各自 DTB 与首版逐字节
+一致，recovery 的文件清单不变。整盘镜像的 GPT 和源内容对照通过。裁剪版尚未上板，
+HDMI 实际出图、USB 键鼠、MPP 解码和 recovery 启动留待备用 SD 卡验收。

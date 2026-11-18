@@ -5,7 +5,7 @@
 ```bash
 cd /home/ww/codings/ZenithTerminal
 ./tools/zero3e-build all
-./tools/zero3e-sd build
+./tools/zero3e-sd build --output build/zero3e-kernel-slim/zenith-zero3e-slim-sd.img
 ```
 
 SDK 固件没有变化时，只运行第二条即可。生成镜像不需要 root，不挂载文件系统，
@@ -13,21 +13,21 @@ SDK 固件没有变化时，只运行第二条即可。生成镜像不需要 roo
 
 输出文件：
 
-- `build/zero3e-sd/zenith-zero3e-sd.img`：**实际写卡用的 raw 整盘镜像**。
-- `build/zero3e-sd/zenith-zero3e-sd.idbloader.img`：从本次 SDK loader 转换的 SD 启动镜像。
-- `build/zero3e-sd/zenith-zero3e-sd.json`：分区、源文件、偏移和检查结果。
+- `build/zero3e-kernel-slim/zenith-zero3e-slim-sd.img`：**实际写卡用的 raw 整盘镜像**。
+- 同目录的 `.idbloader.img` 和 `.json`：转换后的 SD 启动镜像和校验记录。
+- 首版已上板的镜像留在 `build/zero3e-sd/zenith-zero3e-sd.img`，用于回退。
 
 默认整盘镜像逻辑长度 **7 GiB，即 7,516,192,768 字节**，适用于实际容量不少于这个
 值且逻辑扇区为 512 字节的卡。通常可使用标称 8 GB 或更大的卡，写卡脚本仍以设备
-报告的实际容量判断。镜像是稀疏文件，当前实际占用约 161 MiB；复制到不保留稀疏性的
-位置时可能占满 7 GiB。
+报告的实际容量判断。镜像是稀疏文件，实际磁盘占用取决于固件内容和宿主文件系统；
+复制到不保留稀疏性的位置时可能占满 7 GiB。
 
 SDK 路径默认沿用现有环境，也可显式指定：
 
 ```bash
 ./tools/zero3e-sd build \
   --sdk-root /home/ww/codings/sdks/radxa-rk356x-linux6.1-rkr4 \
-  --output build/zero3e-sd/zenith-zero3e-sd.img \
+  --output build/zero3e-kernel-slim/zenith-zero3e-slim-sd.img \
   --size-mib 7168
 ```
 
@@ -92,8 +92,8 @@ boot_merger idb -l -n -o <idbloader.img> <MiniLoaderAll.bin>
 ## 离线检查镜像
 
 ```bash
-./tools/zero3e-sd check build/zero3e-sd/zenith-zero3e-sd.img
-sfdisk --verify build/zero3e-sd/zenith-zero3e-sd.img
+./tools/zero3e-sd check build/zero3e-kernel-slim/zenith-zero3e-slim-sd.img
+sfdisk --verify build/zero3e-kernel-slim/zenith-zero3e-slim-sd.img
 ```
 
 生成时自动检查：
@@ -108,15 +108,15 @@ sfdisk --verify build/zero3e-sd/zenith-zero3e-sd.img
 
 ## 确认目标设备后再写卡
 
-**当前仅生成镜像，没有写入任何实体盘。** 执行写卡前，需要确认目标整盘设备的路径、
-型号、实际容量和序列号（设备能提供时），并接受该设备原有分区数据丢失。
+执行写卡前，需要确认目标整盘设备的路径、型号、实际容量和序列号（设备能提供时），
+并接受该设备原有分区数据丢失。
 
 先插入读卡器，查看设备，再对你确认的候选设备执行只读检查：
 
 ```bash
 lsblk -o NAME,PATH,SIZE,MODEL,SERIAL,TRAN,RM,RO,MOUNTPOINTS
 # 以下 /dev/sdX 是占位符，必须替换为确认过的整盘设备，不能填写分区节点。
-./tools/zero3e-sd plan build/zero3e-sd/zenith-zero3e-sd.img /dev/sdX
+./tools/zero3e-sd plan build/zero3e-kernel-slim/zenith-zero3e-slim-sd.img /dev/sdX
 ```
 
 `plan` 不写盘；会拒绝分区、loop/mapper、只读盘、容量不足、4K 逻辑扇区，以及设备
@@ -127,7 +127,7 @@ lsblk -o NAME,PATH,SIZE,MODEL,SERIAL,TRAN,RM,RO,MOUNTPOINTS
 
 ```bash
 sudo /home/ww/codings/ZenithTerminal/tools/zero3e-sd write \
-  /home/ww/codings/ZenithTerminal/build/zero3e-sd/zenith-zero3e-sd.img /dev/sdX
+  /home/ww/codings/ZenithTerminal/build/zero3e-kernel-slim/zenith-zero3e-slim-sd.img /dev/sdX
 ```
 
 脚本再次展示设备信息，要求在交互终端中完整输入 `ERASE /dev/sdX`；路径是脚本显示
@@ -150,13 +150,14 @@ sudo /home/ww/codings/ZenithTerminal/tools/zero3e-sd write \
 1. 板卡断电，插入 SD 卡，连接 3.3V TTL 串口，1500000/8N1/无流控。
 2. 先打开串口并记录日志，再上电，依次确认 DDR、U-Boot、内核和 root shell。
 3. 电脑有线口设为 `192.168.77.1/24`，连接网线，执行 `ssh root@192.168.77.3`。
-4. 连续三次冷启动和一次网线拔插均恢复正常后，再开展应用自检和内核裁剪。
+4. 连续三次冷启动和一次网线拔插均恢复正常后，进行应用和外设验收。
 
 接线和登录细节见 [开发固件指南](ZERO3E_BRINGUP.md)。
 
-## 已完成的离线验证
+## 已完成的验证
 
-当前已生成 7 GiB raw 镜像，源 payload 比较和原生 `sfdisk --verify` 均通过。
+首版及内核裁剪版均生成了 7 GiB raw 镜像。裁剪版的构建和大小对比见
+[开发固件指南](ZERO3E_BRINGUP.md#2026-11-18-内核裁剪版)。
 另用普通镜像文件验证了 7 GiB → 8 GiB 的卡容量调整，不使用实体盘或 loop 设备。
 
 ```bash
@@ -167,4 +168,12 @@ python3 -m unittest discover -s tests -p test_zero3e_sd.py
 普通文件模拟，以及挂载盘/错误设备/缺失确认的拒绝路径。普通文件传输模拟仅替换设备
 身份、ioctl 和交互输入，实际复制、读回和 GPT 操作均执行。
 
-记录：`doc/evidence/zero3e-sd-image.json`。实体写卡和板端启动仍等待目标设备确认。
+首版镜像构建记录：`doc/evidence/zero3e-sd-image.json`。
+
+2026-11-18，首版已在 15.94 GB 的实体 SD 卡上完成烧录。7 GiB 镜像整盘读回逐字节一致；
+备 GPT 已移至卡尾，userdata 已扩大，调整后的分区表及启动区检查通过。
+
+同日，纠正 TX/RX 接线后，串口抓到两轮完整的 SD 启动：DDR → SPL/U-Boot → Linux 6.1.84
+→ SD 上的 ext4 根分区 → root shell 提示符。两轮均显示 Dropbear 启动成功和千兆网口链路建立；
+隔离直连通过 SSH `none` 认证登录 `root@192.168.77.3`，并确认 `uid=0`。
+三次冷启动和网线拔插恢复验收尚未完成。

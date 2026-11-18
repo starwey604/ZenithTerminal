@@ -1,0 +1,26 @@
+diff --git a/arch/arm64/configs/rk3566_zenith_zero3e_slim.config b/arch/arm64/configs/rk3566_zenith_zero3e_slim.config
+new file mode 100644
+--- /dev/null
++++ b/arch/arm64/configs/rk3566_zenith_zero3e_slim.config
+@@ -0,0 +1,21 @@
++# ZERO 3E uses wired Ethernet and has no enabled CAN controller.
++# CONFIG_WLAN is not set
++# CONFIG_WIRELESS is not set
++# CONFIG_BT is not set
++# CONFIG_CAN is not set
++
++# Without the filter these device classes default to y and ignore overrides.
++CONFIG_MEDIA_SUPPORT_FILTER=y
++# CONFIG_MEDIA_SUBDRV_AUTOSELECT is not set
++CONFIG_MEDIA_CAMERA_SUPPORT=y
++CONFIG_MEDIA_PLATFORM_SUPPORT=y
++CONFIG_MEDIA_TEST_SUPPORT=y
++# CONFIG_MEDIA_ANALOG_TV_SUPPORT is not set
++# CONFIG_MEDIA_DIGITAL_TV_SUPPORT is not set
++# CONFIG_MEDIA_RADIO_SUPPORT is not set
++# CONFIG_MEDIA_SDR_SUPPORT is not set
++
++# SD/eMMC are the boot media; SATA and PCIe are disabled in this DTB.
++# Keep SCSI, USB mass storage and gadget/FunctionFS for recovery.
++# CONFIG_ATA is not set
++# CONFIG_BLK_DEV_NVME is not set

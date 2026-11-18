@@ -138,7 +138,8 @@ Wayland/X11 窗口和 OpenGL writeback 预览；板端 preview=OFF 不引入这�
 日志：`build/native/test.log`、`build/rk3566-clang/elf-check.log`、
 `build/rk3566-clang/qemu-test.log`。两套构建日志分别在对应目录的 `build.log`。
 以上为 2026-11-12 的验证记录，当时目标板尚未到货。现在已完成第一版开发固件
-构建，见 [上板开发指南](ZERO3E_BRINGUP.md)；实板运行和 MPP 应用后端仍待验证/实现。
+构建，应用自检已在 ZERO 3E 实板通过，见 [上板开发指南](ZERO3E_BRINGUP.md#2026-11-18-实板结果)。
+MPP 应用后端仍待实现。
 
 ## 可选 DRM 探测模块
 
