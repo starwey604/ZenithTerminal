@@ -21,14 +21,17 @@ Preview::Preview(int width, int height) : impl_(std::make_unique<Impl>()) {
     ok(SDL_SetTextureBlendMode(impl_->texture, SDL_BLENDMODE_NONE));
 }
 Preview::~Preview() = default;
-bool Preview::show(const void* pixels, int pitch) {
-    SDL_Event event;
-    while (SDL_PollEvent(&event))
-        if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE)) return false;
+bool Preview::poll_event(SDL_Event& event) {
+    if (!SDL_PollEvent(&event)) return false;
+    if (event.type == SDL_EVENT_MOUSE_MOTION || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+        event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+        ok(SDL_ConvertEventToRenderCoordinates(impl_->renderer, &event));
+    return true;
+}
+void Preview::show(const void* pixels, int pitch) {
     ok(SDL_UpdateTexture(impl_->texture, nullptr, pixels, pitch));
     ok(SDL_SetRenderDrawColor(impl_->renderer, 4, 8, 12, 255)); ok(SDL_RenderClear(impl_->renderer));
     ok(SDL_RenderTexture(impl_->renderer, impl_->texture, nullptr, nullptr));
     ok(SDL_RenderPresent(impl_->renderer));
-    return true;
 }
 } // namespace zenith

@@ -72,6 +72,14 @@ sudo udevadm trigger --action=remove /sys/devices/faux/vkms/drm/card0
 writeback 和像素校验。`--capture` 在第 31 帧及指定的最后一帧保存 BMP；
 文件不存在的目录会导致报错并清理。TEST_ONLY 模式不生成截图。
 
+预览右侧的 **INPUT CHECK** 用于测试键鼠。移动到按钮上会高亮，按住左键或
+Space 会点亮按钮，松开后右下角计数加一。左键需在按钮内按下并松开；
+拖到按钮外松开或切出窗口会取消操作。缩放窗口后仍按画面内容命中，
+letterbox 黑边不参与交互。按钮直接画在 ARGB UI plane；桌面窗口显示的是
+包含该反馈的 VKMS writeback。
+
+要试业务界面而不是诊断按钮，见 [3V3 步兵 HUD](RMUL_3V3_HUD.md)。
+
 每次运行都会先执行带真实 FB 的 atomic TEST_ONLY。实际提交使用两个缓冲槽
 轮换：只修改未被扫描输出的槽；blocking atomic commit 完成替换，再等待
 writeback fence 成功后读取结果、校验和预览。预览只上传这张 XR24 图，不接触
@@ -139,7 +147,8 @@ python3 tools/check-rk-elf.py build/rk3566-clang/bin/ZenithTerminal --sdk-root "
 ```
 
 板端构建同一份 DRM atomic、缓冲管理、SDL 离屏 UI 和应用代码；不构建桌面
-preview，也不链接 X11。示例默认要求 writeback，可通过 `--no-writeback --no-preview` 关闭；
+preview，也不链接 X11。构建已启用 SDL 的 libudev 支持；上述控件当前在
+桌面预览中启用。示例默认要求 writeback，可通过 `--no-writeback --no-preview` 关闭；
 是否适合板上直接运行需等实机能力探测，不将 writeback 作为普通 HDMI
 显示的必要条件。本轮完成交叉编译与用户态测试，不代表已经完成 Rockchip 上板合成。
 

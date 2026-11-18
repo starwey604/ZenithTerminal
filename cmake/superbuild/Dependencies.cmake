@@ -67,6 +67,11 @@ zt_dependency(paho-cpp paho-mqtt-cpp paho-c
     -DPAHO_WITH_MQTT_C:BOOL=OFF -DPAHO_BUILD_TESTS:BOOL=OFF -DPAHO_BUILD_EXAMPLES:BOOL=OFF)
 
 # UI stays software/offscreen. Only desktop writeback preview enables Wayland/X11/OpenGL.
+# On RK, SDL can discover evdev devices through the SDK's libudev without using KMSDRM.
+set(_sdl_libudev OFF)
+if(ZT_PLATFORM STREQUAL "rk3566")
+    set(_sdl_libudev ON)
+endif()
 zt_dependency(sdl SDL paho-cpp
     -DSDL_SHARED:BOOL=OFF -DSDL_STATIC:BOOL=ON -DSDL_TESTS:BOOL=OFF
     -DSDL_TEST_LIBRARY:BOOL=OFF -DSDL_UNIX_CONSOLE_BUILD:BOOL=ON
@@ -75,7 +80,7 @@ zt_dependency(sdl SDL paho-cpp
     -DSDL_GPU:BOOL=OFF -DSDL_AUDIO:BOOL=OFF -DSDL_CAMERA:BOOL=OFF
     -DSDL_DBUS:BOOL=OFF -DSDL_IBUS:BOOL=OFF -DSDL_LIBURING:BOOL=OFF
     -DSDL_JOYSTICK:BOOL=OFF -DSDL_HAPTIC:BOOL=OFF -DSDL_HIDAPI:BOOL=OFF
-    -DSDL_LIBUDEV:BOOL=OFF)
+    -DSDL_LIBUDEV:BOOL=${_sdl_libudev})
 
 ExternalProject_Add(zenith-app
     SOURCE_DIR "${CMAKE_SOURCE_DIR}"

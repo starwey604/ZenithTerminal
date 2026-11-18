@@ -34,6 +34,7 @@ struct VideoPlayer::Impl {
                     if (stop.stop_requested())
                         return;
                     state.frame = std::move(frame);
+                    state.frame_at = std::chrono::steady_clock::now();
                     ++state.decoded;
                     state.loops = source ? source->loops() : 0;
                     if (rx)

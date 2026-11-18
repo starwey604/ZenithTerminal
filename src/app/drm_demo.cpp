@@ -4,6 +4,7 @@
 #endif
 #include <zenith/display/atomic_display.hpp>
 #include <zenith/display/probe.hpp>
+#include <zenith/infantry_hud.hpp>
 #include <zenith/ui.hpp>
 #include <SDL3/SDL.h>
 #ifdef ZT_ENABLE_PREVIEW
@@ -135,10 +136,11 @@ int run_drm_demo(int argc, char** argv) {
         zenith::display::DisplayOptions options;
         int frames = 300, warmup = 10, width = 1280, height = 720;
         std::string device, capture, profile, video_file, video_bind="127.0.0.1", va_device="/dev/dri/renderD128";
-        bool video_loop=false, explicit_size=false; unsigned video_port=0;
+        bool video_loop=false, explicit_size=false, hud_demo=false; unsigned video_port=0;
         for (int i = 1; i < argc; ++i) {
             const std::string arg = argv[i];
             if (arg == "--video-loop") video_loop=true;
+            else if (arg == "--hud-demo") hud_demo=true;
             else if (arg == "--pipeline") pipeline = true;
             else if (arg == "--test-only") test_only = true;
             else if (arg == "--uncapped") uncapped = true;
@@ -174,6 +176,7 @@ int run_drm_demo(int argc, char** argv) {
                 std::cout << "ZenithTerminal --drm-demo [--size WIDTHxHEIGHT] [--pipeline] [--test-only] [--take-over] [--no-preview] [--frames N] [--capture out.bmp] [--device /dev/dri/cardN] [--profile out.csv] [--warmup N] [--uncapped] [--video-format nv12|xrgb] [--no-writeback] [--state full|delta] [--video-file HEVC.mp4 | --video-udp PORT] [--video-loop] [--video-bind IP] [--va-device /dev/dri/renderD128]\n"
                     "Default: VKMS, 1280x720, 300 frames; N=0 runs until Escape/SIGINT. Requires DRM master; --take-over permits replacing inherited active state.\n";
                 std::cout << "Decoded video uses VAAPI with explicit CPU NV12 staging; video defaults to 60 Hz rendering. --video-loop applies to files only.\n";
+                std::cout << "--hud-demo: RMUL 3V3 infantry practice with SDL preview and --video-file + --video-loop or --video-udp. Use --frames 0 for the full round.\n";
                 return 0;
             } else throw std::runtime_error("unknown/missing demo argument: " + arg);
         }
@@ -184,6 +187,8 @@ int run_drm_demo(int argc, char** argv) {
         if(video_loop&&video_file.empty()) throw std::runtime_error("--video-loop requires --video-file");
         if(use_video&&options.video_format!=zenith::display::VideoFormat::nv12)
             throw std::runtime_error("decoded video requires nv12");
+        if (hud_demo && (!use_video || !preview || (!video_port && !video_loop)))
+            throw std::runtime_error("--hud-demo requires SDL preview and --video-udp or --video-file with --video-loop");
 #ifndef ZT_ENABLE_VIDEO
         if(use_video) throw std::runtime_error("video backend disabled; configure native with ZT_VIDEO_BACKEND=vaapi");
 #endif
@@ -230,8 +235,25 @@ int run_drm_demo(int argc, char** argv) {
         }
         zenith::display::AtomicDisplay display(device, width, height, take_over, options);
         std::cout << display.description() << '\n' << std::flush;
+        zenith::ui::InputButton input_button;
+        const auto* button = preview && !test_only && !hud_demo ? &input_button : nullptr;
+        zenith::core::InfantryPractice round;
+        zenith::ui::InfantryHud hud;
+        using Clock = zenith::core::InfantryPractice::Clock;
+        auto draw_overlay = [&](const zenith::display::MappedImage& image, unsigned number) {
+            if (!hud_demo) {
+                zenith::ui::draw(image.pixels, width, height, image.pitch, number, source_label, button);
+                return;
+            }
+            const auto now = Clock::now();
+            bool video_frozen = false;
+#ifdef ZT_ENABLE_VIDEO
+            video_frozen = now - video_snapshot.frame_at >= std::chrono::milliseconds(500);
+#endif
+            hud.draw(image.pixels, width, height, image.pitch, round.snapshot(now), video_frozen);
+        };
         auto first = display.next_frame(); fill(first.video, 0);
-        zenith::ui::draw(first.ui_argb.pixels, width, height, first.ui_argb.pitch, 0, source_label);
+        draw_overlay(first.ui_argb, 0);
         display.test_only(first.slot);
         std::cout << "ATOMIC TEST_ONLY PASS (real two-plane framebuffers, writeback=" << options.writeback << ")\n" << std::flush;
         if (test_only) return 0;
@@ -250,8 +272,57 @@ int run_drm_demo(int argc, char** argv) {
         auto prepared_targets = first;
         const auto start = std::chrono::steady_clock::now();
         for (unsigned frame = 0; !interrupted && (!frames || frame < static_cast<unsigned>(frames)); ++frame) {
-            using Clock = std::chrono::steady_clock;
             const auto begin = Clock::now();
+#ifdef ZT_ENABLE_PREVIEW
+            if (window) {
+                auto move_pointer = [&](float x, float y) {
+                    x *= zenith::ui::canvas_width / width;
+                    y *= zenith::ui::canvas_height / height;
+                    if (hud_demo) hud.move(x, y);
+                    else input_button.move(x, y);
+                };
+                bool close = false;
+                SDL_Event event;
+                while (!close && window->poll_event(event)) {
+                    switch (event.type) {
+                    case SDL_EVENT_QUIT:
+                    case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+                        close = true;
+                        break;
+                    case SDL_EVENT_WINDOW_FOCUS_LOST:
+                        if (hud_demo) hud.cancel();
+                        else input_button.cancel();
+                        break;
+                    case SDL_EVENT_WINDOW_MOUSE_LEAVE:
+                        if (hud_demo) hud.leave();
+                        else input_button.leave();
+                        break;
+                    case SDL_EVENT_MOUSE_MOTION:
+                        move_pointer(event.motion.x, event.motion.y);
+                        break;
+                    case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                    case SDL_EVENT_MOUSE_BUTTON_UP:
+                        if (event.button.button == SDL_BUTTON_LEFT) {
+                            move_pointer(event.button.x, event.button.y);
+                            if (hud_demo) hud.mouse(event.button.down, round, Clock::now());
+                            else input_button.mouse(event.button.down);
+                        }
+                        break;
+                    case SDL_EVENT_KEY_DOWN:
+                    case SDL_EVENT_KEY_UP:
+                        if (event.key.repeat) break;
+                        if (event.key.down && event.key.key == SDLK_ESCAPE)
+                            close = !hud_demo || !hud.escape(round.snapshot(Clock::now()).stage);
+                        if (hud_demo && event.key.scancode == SDL_SCANCODE_TAB)
+                            hud.tab(event.key.down);
+                        if (!hud_demo && event.key.scancode == SDL_SCANCODE_SPACE)
+                            input_button.space(event.key.down);
+                        break;
+                    }
+                }
+                if (close) break;
+            }
+#endif
             auto ms = [](auto a, auto b) { return std::chrono::duration<double, std::milli>(b-a).count(); };
             double video_ms = 0, ui_ms = 0;
             int prepared_frame = -1;
@@ -264,7 +335,7 @@ int run_drm_demo(int argc, char** argv) {
                 auto targets = display.next_frame();
                 fill(targets.video, number);
                 const auto generated = Clock::now();
-                zenith::ui::draw(targets.ui_argb.pixels, width, height, targets.ui_argb.pitch, number, source_label);
+                draw_overlay(targets.ui_argb, number);
                 video_ms = ms(before, generated); ui_ms = ms(generated, Clock::now());
                 prepared_frame = number;
                 return targets;
@@ -308,9 +379,8 @@ int run_drm_demo(int argc, char** argv) {
 #endif
             if (!capture.empty() && (frame == 30 || final_video_frame || (frames && frame+1 == static_cast<unsigned>(frames)))) save(capture, image);
             const auto captured = Clock::now();
-            bool keep_running = true;
 #ifdef ZT_ENABLE_PREVIEW
-            if (window) keep_running = window->show(image.pixels, image.pitch);
+            if (window) window->show(image.pixels, image.pitch);
 #endif
             const auto shown = Clock::now();
             if (completed % 60 == 0) std::cout << (options.writeback ? "WRITEBACK PASS frames=" : "SCANOUT frames=") << completed << (options.writeback ? (use_video ? " video color/alpha samples=28\n" : " alpha=0/128/255\n") : " (no capture validation)\n") << std::flush;
@@ -325,9 +395,8 @@ int run_drm_demo(int argc, char** argv) {
                 << std::chrono::duration_cast<std::chrono::nanoseconds>(presented.time_since_epoch()).count() << ','
                 << std::chrono::duration_cast<std::chrono::nanoseconds>(end.time_since_epoch()).count() << '\n';
             #ifdef ZT_ENABLE_VIDEO
-            if(player && video_snapshot.finished && submitted_video==video_snapshot.frame)keep_running=false;
+            if(player && video_snapshot.finished && submitted_video==video_snapshot.frame)break;
 #endif
-            if (!keep_running) break;
         }
         const double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
         display.shutdown();

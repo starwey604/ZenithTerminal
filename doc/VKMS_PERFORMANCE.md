@@ -9,6 +9,24 @@
 补丁源码、构建与恢复见 [VKMS 补丁说明](../patches/linux-vkms/README.md)。
 仓库仅维护一个累计 patch，直接应用到原始基线。
 
+## 2026-11-18：当前内核，1080p HEVC + 步兵 HUD
+
+现有累计补丁原样应用到 [CachyOS 7.3.5-1 的 VKMS 源码](https://github.com/CachyOS/linux/tree/cachyos-7.3.5-1/drivers/gpu/drm/vkms)，
+用运行中内核的头文件重编；未替换系统模块文件，也未调整 CPU 亲和性。
+对照使用同一客户端、本地循环 HEVC、VAAPI、1080p NV12 + SDL ARGB 双 plane、
+VKMS writeback 和 X11/OpenGL 预览，应用侧使用 `--pipeline --uncapped`。
+
+| 模块与界面 | 测量帧 | 墙钟 FPS | SDL UI 均值 | atomic commit 均值 | writeback 等待均值 | 整帧 p99 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 系统原版，赛前 | 29 | 1.56 | 1.46 ms | 312.82 ms | 326.01 ms | 687.35 ms |
+| 累计补丁，赛前 | 358 | 59.84 | 1.51 ms | 6.62 ms | 7.42 ms | 21.30 ms |
+| 累计补丁，比赛中 | 1,244 | 59.29 | 0.89 ms | 7.18 ms | 7.63 ms | 25.97 ms |
+
+同一赛前画面的 SDL 开销基本不变；差异主要在 atomic commit 和 writeback 的等待区间。
+比赛中有 20 帧超过 25 ms，接近 60 FPS，但不是每帧都守住 16.67 ms。
+完整优化版预览输出 2,033 帧，使用了 2,033 个不同的解码帧；逐帧抽样色彩与 alpha 校验全部通过。
+本机原始 CSV、日志和窗口截图在 `build/perf/hud-1080p-7.3.5/`。
+
 ## RM2027 确实是 1080p60 HEVC
 
 [官方通信协议页面](https://bbs.robomaster.com/wiki/20204847/1969151) 中的

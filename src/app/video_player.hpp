@@ -1,10 +1,12 @@
 #pragma once
+#include <chrono>
 #include <string>
 #include <zenith/video.hpp>
 #include <zenith/video_transport.hpp>
 namespace zenith {
 struct VideoSnapshot {
     std::shared_ptr<const video::Frame> frame;
+    std::chrono::steady_clock::time_point frame_at{};
     std::uint64_t decoded{};
     unsigned loops{};
     bool finished{};

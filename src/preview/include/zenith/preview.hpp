@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include <string>
+union SDL_Event;
 namespace zenith {
 class Preview {
 public:
@@ -8,7 +8,9 @@ public:
     ~Preview();
     Preview(const Preview&) = delete;
     Preview& operator=(const Preview&) = delete;
-    bool show(const void* pixels, int pitch);
+    // Pointer event coordinates are in writeback image pixels, not window pixels.
+    bool poll_event(SDL_Event& event);
+    void show(const void* pixels, int pitch);
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;

@@ -70,6 +70,7 @@ if(ZT_VIDEO_BACKEND STREQUAL "vaapi")
 endif()
 
 if(ZT_ENABLE_DRM)
+    add_subdirectory(src/core)
     add_subdirectory(src/ui)
     add_subdirectory(src/display/drm)
     target_sources(zenith_terminal PRIVATE src/app/drm_demo.cpp)

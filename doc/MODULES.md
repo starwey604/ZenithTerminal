@@ -69,5 +69,7 @@ VAAPI 模式自动构建它；MPP 完成后再增加实际后端选项。
 
 当前第 1、2 步和第 3 步的显式 CPU staging 路径已完成验证；第 4 步已先接 UDP
 录制素材回放，并完成 BUAA fork 切换与原编解码器的 FFmpeg 新旧版本兼容修复。
+本机已可通过 [3V3 步兵 HUD](RMUL_3V3_HUD.md) 用模拟比赛状态跑通准备、补给和结算；
+HUD 与练习状态代码同时进入本机和 RK3566 构建。
 直接 DMA-BUF、业务 MQTT 与 MPP 尚未完成。实现与证据见
 [视频调试](VIDEO_PLAYBACK.md) 和 [VKMS 预览](VKMS_PREVIEW.md)。
